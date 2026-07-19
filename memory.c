@@ -3,18 +3,18 @@
 #include "lib.h"
 #include "kernel.h"
 
-typedef struct _picoxmem_block{
-    struct _picoxmem_block *next;
+typedef struct _mem_block{
+    struct _mem_block *next;
     int size;
-}picoxmem_block;
+}mem_header;
 
-typedef struct _picoxmem_pool{
+typedef struct _mem_pool{
     int size;
     int num;
-    picoxmem_block *free;
-}picoxmem_pool;
+    mem_header *free;
+}mem_pool;
 
-static picoxmem_pool pool[] = {
+static mem_pool pool[] = {
     {16, 8, NULL},
     {32, 8, NULL},
     {64, 4, NULL},
@@ -22,20 +22,20 @@ static picoxmem_pool pool[] = {
 
 #define MEMORY_AREA_NUM (sizeof(pool) / sizeof(*pool))
 
-static int picoxmem_init_pool(picoxmem_pool *p){
+static int picoxmem_init_pool(mem_pool *p){
     extern char _freearea;
     static char *area = &_freearea;
     int i;
-    picoxmem_block *mp;
-    picoxmem_block **mpp;
-    mp = (picoxmem_block *)area;
+    mem_header *mp;
+    mem_header **mpp;
+    mp = (mem_header *)area;
     mpp = &p->free;
     for(i = 0; i < p->num; i++){
         *mpp = mp;
         *memset(mp, 0, sizeof(*mp));
         mp->size = p->size;
         mpp = &(mp->next);
-        mp = (picoxmem_block *)((char *)mp + p->size);
+        mp = (mem_header *)((char *)mp + p->size);
         area += p->size;
     }
     return 0;
@@ -51,11 +51,11 @@ int picoxmem_init(void){
 
 void *picoxmem_alloc(int size){
     int i;
-    picoxmem_block *mp;
-    picoxmem_pool *p;
+    mem_header *mp;
+    mem_pool *p;
     for(i = 0; i < MEMORY_AREA_NUM; i++){
         p = &pool[i];
-    if(size <= p->size - sizeof(picoxmem_block)){
+    if(size <= p->size - sizeof(mem_header)){
         if(p->free == NULL){ /* 解放済み領域が無い(メモリ・ブロック不足) */
 	        picox_sysdown();
 	        return NULL;
@@ -78,11 +78,11 @@ void *picoxmem_alloc(int size){
 
 void picoxmem_free(void *mem){
     int i;
-    picoxmem_block *mp;
-    picoxmem_pool *p;
+    mem_header *mp;
+    mem_pool *p;
 
     /* 領域の直前にある(はずの)メモリ・ブロック構造体を取得 */
-    mp = ((picoxmem_block *)mem - 1);
+    mp = ((mem_header *)mem - 1);
 
     for (i = 0; i < MEMORY_AREA_NUM; i++) {
       p = &pool[i];
