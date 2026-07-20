@@ -54,10 +54,10 @@ static struct{
   picox_thread *tail;
 } readyque[PRIORITY_NUM];
 
-static picox_thread *current;
-static picox_thread threads[THREAD_NUM];
-static picox_handler_t handlers[SOFTVEC_TYPE_NUM];
-static picox_msgbox msgboxs[MSGBOX_ID_NUM];
+static picox_thread *current; //カレントスレッドを参照
+static picox_thread threads[THREAD_NUM];  //スレッドの実態
+static picox_handler_t handlers[SOFTVEC_TYPE_NUM]; 
+static picox_msgbox msgboxs[MSGBOX_ID_NUM]; //メッセージボックスの実態
 
 extern char userstack, userstack_end;
 static char *thread_stack = &userstack;
@@ -210,7 +210,7 @@ int thread_free(void *p){
   return 0;
 }
 
-static void sendmsg(picox_msgbox *mboxp, picox_thread *thp, int size, char *p){
+static void sendmsg(picox_msgbox *mboxp, picox_thread *thp, int size, char *p){ //メッセージバッファの内容を設定しメッセージボックスキューへ繋げる
   picox_msgbuf *mp;
   mp = (picox_msgbuf *)picoxmem_alloc(sizeof(*mp));
   if(mp == NULL) picox_sysdown();
@@ -226,22 +226,18 @@ static void sendmsg(picox_msgbox *mboxp, picox_thread *thp, int size, char *p){
   mboxp->tail = mp;
 }
 
-static void recvmsg(picox_msgbox *mboxp){
+static void recvmsg(picox_msgbox *mboxp){ //受信した内容をレシーバ(スレッド)へ設定し、メモリ領域を解放
   picox_msgbuf *mp;
   picox_syscall_param_t *p;
-  /* メッセージ・ボックスの先頭にあるメッセージを抜き出す */
   mp = mboxp->head;
   mboxp->head = mp->next;
   if (mboxp->head == NULL) mboxp->tail = NULL;
   mp->next = NULL;
-  /* メッセージを受信するスレッドに返す値を設定する */
   p = mboxp->receiver->syscall.param;
   p->un.recv.ret = (picox_thread_id_t)mp->sender;
   if (p->un.recv.sizep) *(p->un.recv.sizep) = mp->param.size;
   if (p->un.recv.pp) *(p->un.recv.pp) = mp->param.p;
-  /* 受信待ちスレッドはいなくなったので，NULLに戻す */
   mboxp->receiver = NULL;
-  /* メッセージ・バッファの解放 */
   picoxmem_free(mp);
 }
 
@@ -249,7 +245,7 @@ static int thread_send(picox_msgbox_id_t id, int size, char *p){
   picox_msgbox *mboxp = &msgboxs[id];
   putcurrent();
   sendmsg(mboxp, current, size, p);
-  if(mboxp->receiver){
+  if(mboxp->receiver){ //受信待ちがある時
     current = mboxp->receiver;
     recvmsg(mboxp);
     putcurrent();
@@ -259,7 +255,7 @@ static int thread_send(picox_msgbox_id_t id, int size, char *p){
 
 static picox_thread_id_t thread_recv(picox_msgbox_id_t id, int *sizep, char **pp){
   picox_msgbox *mboxp =&msgboxs[id];
-  if(mboxp->receiver) picox_sysdown(); //他のスレッドがすでに受信待ちしている
+  if(mboxp->receiver) picox_sysdown(); //他のスレッドがすでに受信待ちしている時
   mboxp->receiver = current;  //受信待ちスレッドに設定
   if(mboxp->head == NULL){  //メッセージボックスにメッセージがないときスレッドをスリープさせる
     return -1;
