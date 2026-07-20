@@ -14,7 +14,7 @@ CFLAGS := -mcpu=cortex-m0plus -mthumb -std=c11 -Wall -Wextra \
 LDFLAGS := -T linker.ld -nostartfiles -nostdlib \
            -Wl,-Map=$(TARGET).map
 
-OBJS := boot2.o handler.o vector_table.o serial.o main.o clock.o interrupt.o kernel.o syscall.o lib.o memory.o shell.o
+OBJS := boot2.o handler.o vector_table.o serial.o main.o clock.o interrupt.o kernel.o syscall.o lib.o memory.o shell.o command.o console.o
 
 .PHONY: all flash openocd gdb clean reset erase
 

@@ -12,11 +12,6 @@ void serial_put_uint(uint32_t value);
 void serial_put_int(int value);
 void serial_put_hex(uint32_t value);
 
-/* 従来のポーリング受信API。 */
-char serial_getc(void);
-int serial_getc_nonblock(void);
-void serial_gets(char *buf, int size);
-
 /* UART0受信割り込み用API。 */
 void serial_enable_rx_interrupt(void);
 void serial_disable_rx_interrupt(void);
