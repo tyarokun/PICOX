@@ -3,20 +3,41 @@
 
 #include "define.h"
 
+/*
+ * RP2040 UART0 low-level driver.
+ *
+ * This layer only operates the UART hardware.  Line editing, buffering,
+ * and thread-to-thread communication belong to consdrv.c.
+ */
 void serial_init(void);
 
-/* 送信側はポーリング方式。 */
+/* Polling API used during boot and fatal-error reporting. */
 void serial_putc(char c);
 void serial_puts(const char *s);
 void serial_put_uint(uint32_t value);
 void serial_put_int(int value);
 void serial_put_hex(uint32_t value);
 
-/* UART0受信割り込み用API。 */
-void serial_enable_rx_interrupt(void);
-void serial_disable_rx_interrupt(void);
-int serial_rx_interrupt_handler(void);
-int serial_readc_nonblock(void);
-uint32_t serial_rx_overflow_count(void);
+/* Byte-oriented UART API used by the console driver. */
+int serial_is_send_enable(void);
+void serial_send_byte(uint8_t value);
+int serial_is_recv_enable(void);
+uint8_t serial_recv_byte(void);
+
+/* UART0/NVIC interrupt control. */
+void serial_interrupt_enable(void);
+void serial_interrupt_disable(void);
+
+void serial_intr_recv_enable(void);
+void serial_intr_recv_disable(void);
+void serial_intr_send_enable(void);
+void serial_intr_send_disable(void);
+
+int serial_intr_is_recv(void);
+int serial_intr_is_send(void);
+int serial_intr_is_send_enable(void);
+
+void serial_intr_clear_recv(void);
+void serial_intr_clear_send(void);
 
 #endif
