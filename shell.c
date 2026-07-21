@@ -35,20 +35,17 @@ typedef struct {
 
 static shell_console console;
 
-static uint32_t send_buffer_used(const shell_console *cons)
-{
+static uint32_t send_buffer_used(const shell_console *cons){
     return (cons->send_tail - cons->send_head) &
            SHELL_SEND_BUFFER_MASK;
 }
 
-static uint32_t send_buffer_free(const shell_console *cons)
-{
+static uint32_t send_buffer_free(const shell_console *cons){
     return (SHELL_SEND_BUFFER_SIZE - 1u) -
            send_buffer_used(cons);
 }
 
-static int send_push_raw(shell_console *cons, uint8_t value)
-{
+static int send_push_raw(shell_console *cons, uint8_t value){
     uint32_t next =
         (cons->send_tail + 1u) & SHELL_SEND_BUFFER_MASK;
 
@@ -62,8 +59,7 @@ static int send_push_raw(shell_console *cons, uint8_t value)
     return 0;
 }
 
-static int send_required_size(const char *data, int length)
-{
+static int send_required_size(const char *data, int length){
     int i;
     int required = 0;
 
@@ -74,11 +70,7 @@ static int send_required_size(const char *data, int length)
     return required;
 }
 
-static int send_push_text(
-    shell_console *cons,
-    const char *data,
-    int length)
-{
+static int send_push_text(shell_console *cons, const char *data, int length){
     int i;
     int required;
 
@@ -99,8 +91,7 @@ static int send_push_text(
     return 0;
 }
 
-static void send_drain(shell_console *cons)
-{
+static void send_drain(shell_console *cons){
     while (cons->send_head != cons->send_tail &&
            serial_is_send_enable()) {
         serial_send_byte(cons->send_buffer[cons->send_head]);
@@ -115,11 +106,7 @@ static void send_drain(shell_console *cons)
     }
 }
 
-static int send_text(
-    shell_console *cons,
-    const char *data,
-    int length)
-{
+static int send_text( shell_console *cons, const char *data, int length){
     int result;
 
     INTR_DISABLE();
@@ -135,28 +122,21 @@ static int send_text(
     return result;
 }
 
-static void send_text_from_interrupt(
-    shell_console *cons,
-    const char *data,
-    int length)
-{
+static void send_text_from_interrupt(shell_console *cons, const char *data, int length){
     if (send_push_text(cons, data, length) == 0) {
         send_drain(cons);
     }
 }
 
-static int send_write_length(const char *data, int length)
-{
+static int send_write_length(const char *data, int length){
     return send_text(&console, data, length);
 }
 
-static int send_write(const char *text)
-{
+static int send_write(const char *text){
     return send_write_length(text, strlen(text));
 }
 
-static void send_input_line(shell_console *cons)
-{
+static void send_input_line(shell_console *cons){
     char *message;
     int size = cons->recv_length + 1;
 
@@ -169,8 +149,7 @@ static void send_input_line(shell_console *cons)
     cons->recv_length = 0;
 }
 
-static void process_received_character(shell_console *cons, int c)
-{
+static void process_received_character(shell_console *cons, int c){
     if (c == '\n' && cons->previous_was_cr) {
         cons->previous_was_cr = 0;
         return;
@@ -218,8 +197,7 @@ static void process_received_character(shell_console *cons, int c)
     }
 }
 
-static void shell_interrupt(void)
-{
+static void shell_interrupt(void){
     if (serial_intr_is_recv() || serial_is_recv_enable()) {
         while (serial_is_recv_enable()) {
             process_received_character(
@@ -241,8 +219,7 @@ static void shell_interrupt(void)
     }
 }
 
-static char *skip_spaces(char *p)
-{
+static char *skip_spaces(char *p){
     while (*p == ' ') {
         p++;
     }
@@ -265,8 +242,7 @@ static const command_entry commands[] = {
 #define COMMAND_COUNT \
     ((int)(sizeof(commands) / sizeof(commands[0])))
 
-static int command_help(char *argument)
-{
+static int command_help(char *argument){
     int i;
 
     (void)argument;
@@ -284,16 +260,14 @@ static int command_help(char *argument)
     return 0;
 }
 
-static int command_echo(char *argument)
-{
+static int command_echo(char *argument){
     send_write(argument);
     send_write("\n");
 
     return 0;
 }
 
-static int command_version(char *argument)
-{
+static int command_version(char *argument){
     (void)argument;
 
     send_write("PicoX 0.2 (RP2040)\n");
@@ -301,8 +275,7 @@ static int command_version(char *argument)
     return 0;
 }
 
-static int command_clear(char *argument)
-{
+static int command_clear(char *argument){
     (void)argument;
 
     send_write("\033[2J\033[H");
@@ -310,8 +283,7 @@ static int command_clear(char *argument)
     return 0;
 }
 
-static int command_execute(char *line)
-{
+static int command_execute(char *line){
     char *command;
     char *argument;
     int i;
@@ -346,13 +318,9 @@ static int command_execute(char *line)
     return -1;
 }
 
-int shell_main(int argc, char *argv[])
-{
+int shell_main(int argc, char *argv[]){
     char *line;
     int size;
-
-    (void)argc;
-    (void)argv;
 
     memset(&console, 0, sizeof(console));
 
@@ -367,23 +335,17 @@ int shell_main(int argc, char *argv[])
     serial_intr_recv_enable();
 
     send_write("\nPicoX shell started\n");
-    send_write("type 'help' for commands\n");
 
     for (;;) {
         send_write("picox> ");
-
         picox_recv(MSGBOX_ID_CONSINPUT, &size, &line);
-
         if (!line || size <= 0) {
             if (line) {
                 picox_free(line);
             }
-
             continue;
         }
-
         line[size - 1] = '\0';
-
         command_execute(line);
         picox_free(line);
     }
