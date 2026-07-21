@@ -69,7 +69,7 @@ typedef struct{
       picox_msgbox_id_t id;
       int *sizep;
       char **pp;
-      int ret;
+      picox_thread_id_t ret;
     }recv;
     struct{
       softvec_type_t type;

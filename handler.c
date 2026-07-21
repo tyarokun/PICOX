@@ -79,7 +79,7 @@ __attribute__((naked)) void SVC_Handler(void){
 
     "5:                          \n"
     "ldr  r0, [r0]               \n"    // r0←current->context
-    "b    dispatch               \n"    // dispatch(r0)
+    "bl    dispatch               \n"    // dispatch(r0)
     ".syntax divided             \n"  //アセンブリ構文設定を従来のDivided Syntaxへ戻す
   );
 }
