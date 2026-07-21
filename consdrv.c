@@ -12,8 +12,8 @@
  * Static TX storage avoids dynamic allocation in the interrupt handler.
  * The size must be a power of two because indices wrap using a mask.
  */
-#define CONSDRV_SEND_BUFFER_SIZE 512u
-#define CONSDRV_SEND_BUFFER_MASK (CONSDRV_SEND_BUFFER_SIZE - 1u)
+#define CONSDRV_SEND_BUFFER_SIZE 512
+#define CONSDRV_SEND_BUFFER_MASK (CONSDRV_SEND_BUFFER_SIZE - 1)
 
 #if (CONSDRV_SEND_BUFFER_SIZE & CONSDRV_SEND_BUFFER_MASK) != 0
 #error CONSDRV_SEND_BUFFER_SIZE must be a power of two
