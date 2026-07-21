@@ -33,20 +33,17 @@ typedef struct {
 
 static consreg consoles[CONSDRV_DEVICE_NUM];
 
-static uint32_t send_buffer_used(const consreg *cons)
-{
+static uint32_t send_buffer_used(const consreg *cons){
     return (cons->send_tail - cons->send_head) &
            CONSDRV_SEND_BUFFER_MASK;
 }
 
-static uint32_t send_buffer_free(const consreg *cons)
-{
+static uint32_t send_buffer_free(const consreg *cons){
     return (CONSDRV_SEND_BUFFER_SIZE - 1u) -
            send_buffer_used(cons);
 }
 
-static int send_push_raw(consreg *cons, uint8_t value)
-{
+static int send_push_raw(consreg *cons, uint8_t value){
     uint32_t next =
         (cons->send_tail + 1u) & CONSDRV_SEND_BUFFER_MASK;
 
@@ -60,8 +57,7 @@ static int send_push_raw(consreg *cons, uint8_t value)
     return 0;
 }
 
-static int send_required_size(const char *data, int length)
-{
+static int send_required_size(const char *data, int length){
     int i;
     int required = 0;
 
@@ -76,8 +72,7 @@ static int send_required_size(const char *data, int length)
  * Add text to the driver's TX ring. LF is converted to CRLF here so that
  * command code can consistently use '\n'.
  */
-static int send_push_text(consreg *cons, const char *data, int length)
-{
+static int send_push_text(consreg *cons, const char *data, int length){
     int i;
     int required;
 
@@ -102,8 +97,7 @@ static int send_push_text(consreg *cons, const char *data, int length)
  * Fill the UART FIFO.  If software data remains, the TX interrupt is left
  * enabled; otherwise it is disabled until new data is queued.
  */
-static void send_drain(consreg *cons)
-{
+static void send_drain(consreg *cons){
     while (cons->send_head != cons->send_tail &&
            serial_is_send_enable()) {
         serial_send_byte(cons->send_buffer[cons->send_head]);
@@ -119,8 +113,7 @@ static void send_drain(consreg *cons)
 }
 
 /* Called from thread context. */
-static int send_text(consreg *cons, const char *data, int length)
-{
+static int send_text(consreg *cons, const char *data, int length){
     int result;
 
     /*
@@ -141,18 +134,13 @@ static int send_text(consreg *cons, const char *data, int length)
 }
 
 /* Called while UART0 IRQ is already active. */
-static void send_text_from_interrupt(
-    consreg *cons,
-    const char *data,
-    int length)
-{
+static void send_text_from_interrupt(consreg *cons, const char *data, int length){
     if (send_push_text(cons, data, length) == 0) {
         send_drain(cons);
     }
 }
 
-static void send_input_line(consreg *cons)
-{
+static void send_input_line(consreg *cons){
     char *message;
     int size = cons->recv_length + 1;
 
@@ -166,8 +154,7 @@ static void send_input_line(consreg *cons)
     cons->recv_length = 0;
 }
 
-static void process_received_character(consreg *cons, int c)
-{
+static void process_received_character(consreg *cons, int c){
     /*
      * Treat CR, LF, and CRLF as one Enter key.
      */
@@ -218,8 +205,7 @@ static void process_received_character(consreg *cons, int c)
     }
 }
 
-static void consdrv_interrupt(void)
-{
+static void consdrv_interrupt(void){
     consreg *cons = &consoles[CONSDRV_DEFAULT_DEVICE];
 
     if (serial_intr_is_recv() || serial_is_recv_enable()) {
@@ -243,12 +229,7 @@ static void consdrv_interrupt(void)
     }
 }
 
-static int consdrv_command(
-    consreg *cons,
-    picox_thread_id_t sender,
-    int size,
-    char *command)
-{
+static int consdrv_command(consreg *cons, picox_thread_id_t sender, int size, char *command){
     if (size < 1) {
         return -1;
     }
@@ -278,15 +259,11 @@ static int consdrv_command(
     }
 }
 
-int consdrv_main(int argc, char *argv[])
-{
+int consdrv_main(int argc, char *argv[]){
     picox_thread_id_t sender;
     char *message;
     int size;
     int index;
-
-    (void)argc;
-    (void)argv;
 
     memset(consoles, 0, sizeof(consoles));
 

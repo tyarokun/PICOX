@@ -12,8 +12,7 @@ typedef struct {
     const char *description;
 } command_entry;
 
-static int send_use(int index)
-{
+static int send_use(int index){
     char *message = (char *)picox_malloc(2);
 
     message[0] = (char)index;
@@ -22,8 +21,7 @@ static int send_use(int index)
     return picox_send(MSGBOX_ID_CONSOUTPUT, 2, message);
 }
 
-static int send_write_length(const char *data, int length)
-{
+static int send_write_length(const char *data, int length){
     char *message;
     int chunk;
     int sent = 0;
@@ -54,13 +52,11 @@ static int send_write_length(const char *data, int length)
     return sent;
 }
 
-static int send_write(const char *text)
-{
+static int send_write(const char *text){
     return send_write_length(text, strlen(text));
 }
 
-static char *skip_spaces(char *p)
-{
+static char *skip_spaces(char *p){
     while (*p == ' ') {
         p++;
     }
@@ -83,8 +79,7 @@ static const command_entry commands[] = {
 #define COMMAND_COUNT \
     ((int)(sizeof(commands) / sizeof(commands[0])))
 
-static int command_help(char *argument)
-{
+static int command_help(char *argument){
     int i;
 
     (void)argument;
@@ -102,16 +97,14 @@ static int command_help(char *argument)
     return 0;
 }
 
-static int command_echo(char *argument)
-{
+static int command_echo(char *argument){
     send_write(argument);
     send_write("\n");
 
     return 0;
 }
 
-static int command_version(char *argument)
-{
+static int command_version(char *argument){
     (void)argument;
 
     send_write("PicoX 0.2 (RP2040)\n");
@@ -119,8 +112,7 @@ static int command_version(char *argument)
     return 0;
 }
 
-static int command_clear(char *argument)
-{
+static int command_clear(char *argument){
     (void)argument;
 
     send_write("\033[2J\033[H");
@@ -128,8 +120,7 @@ static int command_clear(char *argument)
     return 0;
 }
 
-static int command_execute(char *line)
-{
+static int command_execute(char *line){
     char *command;
     char *argument;
     int i;
@@ -164,13 +155,9 @@ static int command_execute(char *line)
     return -1;
 }
 
-int command_main(int argc, char *argv[])
-{
+int command_main(int argc, char *argv[]){
     char *line;
     int size;
-
-    (void)argc;
-    (void)argv;
 
     send_use(CONSDRV_DEFAULT_DEVICE);
 
