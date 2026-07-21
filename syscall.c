@@ -77,7 +77,7 @@ int picox_send(picox_msgbox_id_t id, int size, char *p){
   return param.un.send.ret;
 }
 
-picox_msgbox_id_t picox_recv(picox_msgbox_id_t id, int *sizep, char **pp){
+picox_thread_id_t picox_recv(picox_msgbox_id_t id, int *sizep, char **pp){
   picox_syscall_param_t param;
   param.un.recv.id = id;
   param.un.recv.sizep = sizep;

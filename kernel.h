@@ -16,7 +16,7 @@ int picox_chpri(int priority);
 void *picox_malloc(int size);
 int picox_free(void *p);
 int picox_send(picox_msgbox_id_t id, int size, char *p);
-picox_msgbox_id_t picox_recv(picox_msgbox_id_t id, int *sizep, char **pp);
+picox_thread_id_t picox_recv(picox_msgbox_id_t id, int *sizep, char **pp);
 int picox_setintr(softvec_type_t type, picox_handler_t handler);
 
 // サービスコール
