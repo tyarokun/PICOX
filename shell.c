@@ -12,7 +12,7 @@ int shell_system_task(int argc, char *argv[]){
     (void)argc;
     (void)argv;
 
-    if(console_init() != 0) picox_sysdown();
+    console_init();
     serial_puts("\nPicoX shell started\n");
     serial_puts("type 'help' for commands\n");
 

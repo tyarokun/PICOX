@@ -76,13 +76,8 @@
 #define SERIAL_RX_BUFFER_MASK (SERIAL_RX_BUFFER_SIZE - 1u)
 
 #if (SERIAL_RX_BUFFER_SIZE & SERIAL_RX_BUFFER_MASK) != 0
-#error SERIAL_RX_BUFFER_SIZE must be a power of two
 #endif
 
-/*
- * ISRだけがheadを書き、シェルタスクだけがtailを書く。
- * 1 producer / 1 consumerなので、通常処理側で割り込み禁止にする必要はない。
- */
 static volatile uint8_t rx_buffer[SERIAL_RX_BUFFER_SIZE];
 static volatile uint32_t rx_head;
 static volatile uint32_t rx_tail;
@@ -170,7 +165,7 @@ int serial_rx_interrupt_handler(void){
     return stored;
 }
 
-// UARTポーリング送信
+// 送信
 void serial_putc(char c){
     if (c == '\n') {
         serial_putc('\r');
@@ -223,8 +218,7 @@ void serial_put_hex(uint32_t value){
     }
 }
 
-
-// 受信割り込み
+// 受信
 int serial_readc_nonblock(void){
     uint32_t tail = rx_tail;
     if (tail == rx_head) {

@@ -85,7 +85,6 @@ int console_init(void){
     length = 0;
     previous_was_cr = 0;
     memset(line, 0, sizeof(line));
-
     if (picox_setintr(SOFTVEC_TYPE_SERINTR, console_serial_interrupt) != 0) {
         return -1;
     }
@@ -97,9 +96,7 @@ int console_readline(char *buffer, int size){
     int c;
     int result;
     if (!buffer || size <= 0) return -1;
-    while (1) {
-        /* If an event arrived while the shell was running a command,
-         * consume its queued notification before draining the bytes. */
+    while(1){
         if (serial_event_pending) {
             picox_recv(MSGBOX_ID_CONSINPUT, NULL, NULL);
             serial_event_pending = 0;
