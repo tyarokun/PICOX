@@ -102,7 +102,7 @@ int picoxs_wakeup(picox_thread_id_t id){
   return param.un.wakeup.ret;
 }
 
-void *picoxs_kmalloc(int size){
+void *picoxs_malloc(int size){
   picox_syscall_param_t param;
   param.un.malloc.size = size;
   picox_srvcall(SYSCALL_TYPE_MALLOC, &param);

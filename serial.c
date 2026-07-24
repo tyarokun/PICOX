@@ -83,8 +83,7 @@ static void uart0_set_baudrate(void){
      * baud_div = UARTCLK / (16 * baud)
      * The PL011 fractional divider stores baud_div * 64.
      */
-    baud_div_x64 =
-        ((UART_CLK_HZ * 4u) + (UART_BAUD / 2u)) / UART_BAUD;
+    baud_div_x64 = ((UART_CLK_HZ * 4u) + (UART_BAUD / 2u)) / UART_BAUD;
 
     UARTIBRD = baud_div_x64 / 64u;
     UARTFBRD = baud_div_x64 % 64u;
@@ -93,9 +92,7 @@ static void uart0_set_baudrate(void){
 void serial_init(void){
     RESETS_RESET &= ~(RESET_IO_BANK0 | RESET_PADS_BANK0 | RESET_UART0);
 
-    while ((RESETS_RESET_DONE &
-            (RESET_IO_BANK0 | RESET_PADS_BANK0 | RESET_UART0)) !=
-           (RESET_IO_BANK0 | RESET_PADS_BANK0 | RESET_UART0)) {
+    while ((RESETS_RESET_DONE & (RESET_IO_BANK0 | RESET_PADS_BANK0 | RESET_UART0)) != (RESET_IO_BANK0 | RESET_PADS_BANK0 | RESET_UART0)) {
         /* wait for reset release */
     }
 
@@ -116,10 +113,7 @@ void serial_init(void){
 
     UARTLCR_H = UARTLCR_H_WLEN_8 | UARTLCR_H_FEN;
 
-    UARTIFLS =
-        (UARTIFLS & ~(UARTIFLS_TX_MASK | UARTIFLS_RX_MASK)) |
-        UARTIFLS_TX_1_8 |
-        UARTIFLS_RX_1_8;
+    UARTIFLS = (UARTIFLS & ~(UARTIFLS_TX_MASK | UARTIFLS_RX_MASK)) | UARTIFLS_TX_1_8 | UARTIFLS_RX_1_8;
 
     UARTCR = UARTCR_UARTEN | UARTCR_TXE | UARTCR_RXE;
 }

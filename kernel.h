@@ -21,7 +21,7 @@ int picox_setintr(softvec_type_t type, picox_handler_t handler);
 
 // サービスコール
 int picoxs_wakeup(picox_thread_id_t id);
-void *picoxs_kmalloc(int size);
+void *picoxs_malloc(int size);
 int picoxs_free(void *p);
 int picoxs_send(picox_msgbox_id_t id, int size, char *p);
 
