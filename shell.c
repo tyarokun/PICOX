@@ -142,9 +142,9 @@ static void process_received_character(shell_console *cons, char c){
     }else{
         cons->previous_was_cr = 0;
     }
-    if(c == '\n'){ //Enterの処理 (改行をエコーバック)
+    if(c == '\n'){ //Enterの処理
         send_text_from_interrupt(cons, "\n", 1);
-        send_input_line(cons);
+        send_input_line(cons); //入力された1行の処理を開始
         return;
     }
     if(c == 0x03){ //Ctrl-Cの処理
@@ -286,15 +286,14 @@ int shell_main(int argc, char *argv[]){
 
     picox_setintr(SOFTVEC_TYPE_SERINTR, shell_interrupt); //ソフトウェア割り込みベクタへ登録
 
-    serial_interrupt_enable();
-    serial_intr_recv_enable();
+    serial_interrupt_enable(); //RP2040のNVICでUART0 IRQを有効化
+    serial_intr_recv_enable(); //受信割り込みを有効化
 
     send_write("\nPicoX shell started\n");
 
     for (;;) {
         send_write("picox> ");
         picox_recv(MSGBOX_ID_CONSINPUT, &size, &line); //受信待ち
-        line[size - 1] = '\0';
         command_execute(line); //コマンド解析
         picox_free(line);
     }
