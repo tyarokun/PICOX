@@ -6,6 +6,11 @@
 #include "lib.h"
 #include "shell.h"
 
+/* Cortex-M0+ Application Interrupt and Reset Control Register */
+#define SCB_AIRCR                  (*(volatile uint32_t *)0xE000ED0C)
+#define SCB_AIRCR_VECTKEY          (0x5FA << 16)
+#define SCB_AIRCR_SYSRESETREQ      (1 << 2)
+
 #define SHELL_RECV_BUFFER_SIZE 48
 
 #define SHELL_SEND_BUFFER_SIZE 512
@@ -37,7 +42,7 @@ static shell_console console;
 // 送信リングバッファの空き容量を求める
 static int send_buffer_free(shell_console *cons){
     int send_buffer_used = cons->send_tail - cons->send_head & SHELL_SEND_BUFFER_MASK; //インデックス計算
-    return (SHELL_SEND_BUFFER_SIZE - 1u) - send_buffer_used; //空き容量を計算
+    return (SHELL_SEND_BUFFER_SIZE - 1) - send_buffer_used; //空き容量を計算
 }
 
 // 1バイトを送信バッファへ追加する
@@ -203,6 +208,7 @@ static int command_help(char *argument);
 static int command_echo(char *argument);
 static int command_version(char *argument);
 static int command_clear(char *argument);
+static int command_reset(char *argument);
 
 //コマンドテーブル
 static command_entry commands[] = {
@@ -210,6 +216,7 @@ static command_entry commands[] = {
     {"echo",    command_echo,    "print text"},
     {"version", command_version, "show kernel version"},
     {"clear",   command_clear,   "clear terminal"},
+    {"reset",   command_reset,   "reset the system"},
 };
 
 #define COMMAND_COUNT ((int)(sizeof(commands) / sizeof(commands[0]))) //コマンドの数
@@ -245,6 +252,16 @@ static int command_clear(char *argument){
     (void)argument;
     send_write("\033[2J\033[H"); //\033[2J→画面を消去, \033[H→カーソルを左上へ移動
     return 0;
+}
+
+static int command_reset(char *argument){
+    INTR_DISABLE();
+    __asm__ volatile ("dsb"); //リセット要求より前に実行したメモリアクセスが完了するまで待つ
+    SCB_AIRCR = SCB_AIRCR_VECTKEY | SCB_AIRCR_SYSRESETREQ;
+    __asm__ volatile ("dsb"); //AIRCRへの書き込みを完了させる
+    while(1){ //リセットが反映されるまで後続処理を実行しない
+        __asm__ volatile ("nop");
+    }
 }
 
 //入力行からコマンドと引数を分ける

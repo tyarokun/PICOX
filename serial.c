@@ -195,10 +195,7 @@ void serial_intr_clear_send(void){
     UARTICR = UARTINT_TX;
 }
 
-/*
- * Polling output is retained for early boot and fatal kernel diagnostics.
- * Normal threads must send console output through consdrv.
- */
+// ポーリング送信はOS起動前と致命的エラー表示で使用
 void serial_putc(char c){
     if (c == '\n') {
         serial_putc('\r');
