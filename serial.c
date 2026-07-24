@@ -66,6 +66,7 @@
 #define UARTINT_OE        (1u << 10)
 
 #define UARTINT_RX_ERRORS (UARTINT_FE | UARTINT_PE | UARTINT_BE | UARTINT_OE)
+// 受信タイムアウト割り込みRTを有効化 → 32 ÷ 115200 ≒ 0.000278秒 ≒ 278マイクロ秒
 #define UARTINT_RX_ALL    (UARTINT_RX | UARTINT_RT | UARTINT_RX_ERRORS)
 
 #ifndef UART_CLK_HZ
@@ -113,6 +114,7 @@ void serial_init(void){
 
     UARTLCR_H = UARTLCR_H_WLEN_8 | UARTLCR_H_FEN;
 
+    //RP2040のUART受信FIFOは32文字分あり、現在の受信割り込みしきい値は 1/8 に設定 → 32 / 8 = 4
     UARTIFLS = (UARTIFLS & ~(UARTIFLS_TX_MASK | UARTIFLS_RX_MASK)) | UARTIFLS_TX_1_8 | UARTIFLS_RX_1_8;
 
     UARTCR = UARTCR_UARTEN | UARTCR_TXE | UARTCR_RXE;
