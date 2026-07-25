@@ -578,19 +578,13 @@ int sd_elf_load(char *filename, uint32_t *entry){
         return ERR_ELF_HEADER;
     }
 
-    if (header.ident[0] != 0x7fu || header.ident[1] != 'E'
-        || header.ident[2] != 'L' || header.ident[3] != 'F') {
+    if (header.ident[0] != 0x7fu || header.ident[1] != 'E' || header.ident[2] != 'L' || header.ident[3] != 'F') {
         return ERR_ELF_HEADER;
     }
-    if (header.ident[4] != 1u || header.ident[5] != 1u
-        || header.type != ET_EXEC || header.machine != EM_ARM
-        || header.ehsize != sizeof(header)
-        || header.phentsize != sizeof(program)
-        || header.phnum == 0u || header.phnum > MAX_PHNUM) {
+    if (header.ident[4] != 1u || header.ident[5] != 1u || header.type != ET_EXEC || header.machine != EM_ARM || header.ehsize != sizeof(header) || header.phentsize != sizeof(program) || header.phnum == 0u || header.phnum > MAX_PHNUM){
         return ERR_ELF_FORMAT;
     }
-    if ((header.entry & 1u) == 0u
-        || header.entry < APP_RAM_START || header.entry >= APP_RAM_END) {
+    if ((header.entry & 1u) == 0u || header.entry < APP_RAM_START || header.entry >= APP_RAM_END){
         return ERR_ELF_RANGE;
     }
 
