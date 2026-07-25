@@ -625,6 +625,7 @@ int sd_elf_load(char *filename, uint32_t *entry){
         if (program.filesz != 0u && fat_read(&file, program.offset, (void *)program.vaddr, program.filesz) < 0) {
             return ERR_ELF_READ;
         }
+        // .bssの初期化
         if (program.memsz > program.filesz) {
             memset((void *)(program.vaddr + program.filesz), 0,
             (long)(program.memsz - program.filesz));
@@ -636,8 +637,9 @@ int sd_elf_load(char *filename, uint32_t *entry){
         return ERR_NO_SEGMENT;
     }
 
-    __asm__ volatile ("dsb" ::: "memory");
-    __asm__ volatile ("isb" ::: "memory");
+    // RAMへコードを書き込んだあと、そのコードを実行する前の同期
+    __asm__ volatile ("dsb" ::: "memory"); //DSB それまでのメモリ書き込みが完了するまで待つ
+    __asm__ volatile ("isb" ::: "memory"); //ISB 命令パイプラインを破棄し、以降の命令を改めて読み直させる
     *entry = header.entry;
     return 0;
 }
