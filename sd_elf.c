@@ -8,7 +8,7 @@
  *   FS    : FAT32のみ
  *   file  : ルートディレクトリのFAT 8.3形式ファイル
  *   ELF   : ELF32 / little endian / ARM / ET_EXEC / PT_LOAD
- *   RAM   : 0x20020000-0x2003ffff
+ *   RAM   : 0x20020000-0x2003ffff (128KB)
  */
 
 #define REG32(address) (*(volatile uint32_t *)(address))
@@ -138,18 +138,18 @@ static uint32_t get_u32(const uint8_t *p){
 /* ---------- SPI ---------- */
 
 static uint8_t spi_transfer(uint8_t value){
-    while ((SSPSR & SSPSR_TNF) == 0u) {
-    }
-    SSPDR = value;
-    while ((SSPSR & SSPSR_RNE) == 0u) {
-    }
-    return (uint8_t)SSPDR;
+    while((SSPSR & SSPSR_TNF) == 0u);//送信FIFOに空きが出るまで待つ
+    SSPDR = value; //1バイト書き込む
+    while((SSPSR & SSPSR_RNE) == 0u);//受信FIFOにデータが届くまで待つ
+    return (uint8_t)SSPDR; //受信した1バイトを返す
 }
 
+//SDカードを選択
 static void cs_high(void){
     SIO_GPIO_OUT_SET = CS_MASK;
 }
 
+//SDカードの選択を解除
 static void cs_low(void){
     SIO_GPIO_OUT_CLR = CS_MASK;
 }
@@ -192,6 +192,7 @@ static void sd_deselect(void){
     (void)spi_transfer(0xffu);
 }
 
+// 6バイトを送信 (コマンド番号:1バイト, 引数:バイト, CRC:1バイト)
 static uint8_t sd_command(uint8_t command, uint32_t argument){
     uint8_t response = 0xffu;
     uint8_t crc = 0x01u;
@@ -237,6 +238,7 @@ static int sd_init(void){
         (void)spi_transfer(0xffu);
     }
 
+    //SDカードをアイドル状態へ移行 (成功時はR1 = 0x01が返る)
     response = 0xffu;
     for (i = 0u; i < 10u; i++) {
         response = sd_command(CMD0, 0u);
@@ -249,6 +251,7 @@ static int sd_init(void){
         return -1;
     }
 
+    //SDカードがVersion 2以降か確認 (0x01AAであれば対応電圧や通信が正しいと判断)
     response = sd_command(CMD8, 0x1aau);
     if (response == 0x01u) {
         for (i = 0u; i < 4u; i++) {
@@ -266,6 +269,7 @@ static int sd_init(void){
         return -1;
     }
 
+    // CMD55, ACMD41 を繰り返し、SDカードの初期化完了を待つ
     response = 0xffu;
     for (i = 0u; i < 5000u; i++) {
         response = sd_command(CMD55, 0u);
@@ -283,6 +287,7 @@ static int sd_init(void){
         return -1;
     }
 
+    // CMD58でOCRレジスタを読む
     response = sd_command(CMD58, 0u);
     if (response != 0u) {
         sd_deselect();
@@ -309,6 +314,7 @@ static int sd_init(void){
     return 0;
 }
 
+// 指定した512バイトセクタを読み取る (CMD17を送信→SDカードの応答を確認→0xFEデータトークンを待つ→512バイト受信→CRC 2バイトを読み捨てる)
 static int sd_read_sector(uint32_t lba, uint8_t *buffer){
     uint32_t argument = sd_block_addressing ? lba : lba * SECTOR_SIZE;
     uint8_t response;
@@ -342,37 +348,36 @@ static int sd_read_sector(uint32_t lba, uint8_t *buffer){
 }
 
 /* ---------- FAT32 ---------- */
-
 static int looks_like_fat32(const uint8_t *boot){
     return get_u16(boot + 11u) == SECTOR_SIZE && boot[13] != 0u && get_u16(boot + 17u) == 0u && get_u16(boot + 22u) == 0u && get_u32(boot + 36u) != 0u && boot[510] == 0x55u && boot[511] == 0xaau;
 }
 
+// SDカードのFAT32情報を解析
 static int fat_mount(void){
     uint32_t boot_lba = 0u;
     uint32_t reserved;
     uint32_t fat_size;
     uint32_t fat_count;
 
-    if (sd_read_sector(0u, sector_buffer) < 0) {
+    if(sd_read_sector(0u, sector_buffer) < 0){ //最初にセクタ0を読み、セクタ0自体がFAT32ブートセクタなら、そのまま使用
         return -1;
     }
 
-    if (!looks_like_fat32(sector_buffer)) {
-        boot_lba = get_u32(sector_buffer + 446u + 8u);
-        if (boot_lba == 0u || sd_read_sector(boot_lba, sector_buffer) < 0
-            || !looks_like_fat32(sector_buffer)) {
+    if(!looks_like_fat32(sector_buffer)){
+        boot_lba = get_u32(sector_buffer + 446u + 8u); //そうでなければMBRと判断し、最初のパーティションの開始LBAを読む
+        if (boot_lba == 0u || sd_read_sector(boot_lba, sector_buffer) < 0 || !looks_like_fat32(sector_buffer)) {
             return -1;
         }
     }
 
+    // FAT32のブートセクタから次を取得
     sectors_per_cluster = sector_buffer[13];
     reserved = get_u16(sector_buffer + 14u);
     fat_count = sector_buffer[16];
     fat_size = get_u32(sector_buffer + 36u);
     root_cluster = get_u32(sector_buffer + 44u) & 0x0fffffffu;
 
-    if (reserved == 0u || fat_count == 0u || root_cluster < 2u
-        || (sectors_per_cluster & (sectors_per_cluster - 1u)) != 0u) {
+    if (reserved == 0u || fat_count == 0u || root_cluster < 2u || (sectors_per_cluster & (sectors_per_cluster - 1u)) != 0u) {
         return -1;
     }
 
@@ -381,10 +386,12 @@ static int fat_mount(void){
     return 0;
 }
 
+// クラスタ番号からセクタ番号への変換
 static uint32_t cluster_lba(uint32_t cluster){
     return data_start_lba + (cluster - 2u) * sectors_per_cluster;
 }
 
+// 次のクラスタを取得
 static int fat_next_cluster(uint32_t cluster, uint32_t *next){
     uint32_t offset = cluster * 4u;
 
@@ -396,6 +403,7 @@ static int fat_next_cluster(uint32_t cluster, uint32_t *next){
     return 0;
 }
 
+//小文字ファイル名は大文字へ変換
 static uint8_t fat_upper(uint8_t c){
     if (c >= 'a' && c <= 'z') {
         return (uint8_t)(c - ('a' - 'A'));
@@ -403,6 +411,7 @@ static uint8_t fat_upper(uint8_t c){
     return c;
 }
 
+// ファイル名変 (FATディレクトリエントリの短いファイル名は11バイト固定)
 static int fat_make_short_name(const char *filename, uint8_t name[11]){
     uint32_t base_length = 0u;
     uint32_t extension_length = 0u;
@@ -455,6 +464,7 @@ static int fat_make_short_name(const char *filename, uint8_t name[11]){
     return 0;
 }
 
+// ファイル検索 (ルートディレクトリのクラスタを順番に読み、各32バイトのディレクトリエントリを調べる)
 static int fat_find_file(const uint8_t name[11], fat_file *file){
     uint32_t cluster = root_cluster;
     uint32_t sector_index;
@@ -496,6 +506,7 @@ static int fat_find_file(const uint8_t name[11], fat_file *file){
     return 1;
 }
 
+// ファイル内の指定した位置から、指定した長さを読む
 static int fat_read(const fat_file *file, uint32_t offset, void *buffer, uint32_t length){
     uint8_t *destination = (uint8_t *)buffer;
     uint32_t cluster_size = sectors_per_cluster * SECTOR_SIZE;
@@ -557,54 +568,53 @@ int sd_elf_load(char *filename, uint32_t *entry){
     uint32_t loaded = 0u;
     int result;
 
-    if (entry == NULL) {
+    if(entry == NULL){
         return ERR_ELF_HEADER;
     }
-    if (fat_make_short_name(filename, short_name) < 0) {
+    if(fat_make_short_name(filename, short_name) < 0){ // ファイル名をFAT形式へ変換
         return ERR_FILENAME;
     }
-    if (sd_init() < 0) {
+    if(sd_init() < 0){ // SDカード初期化
         return ERR_SD_INIT;
     }
-    if (fat_mount() < 0) {
+    if(fat_mount() < 0){ //FAT32マウント
         return ERR_FAT32;
     }
 
-    result = fat_find_file(short_name, &file);
-    if (result != 0) {
+    result = fat_find_file(short_name, &file); //ファイル検索
+    if(result != 0){
         return result > 0 ? ERR_NOT_FOUND : ERR_SD_READ;
     }
-    if (fat_read(&file, 0u, &header, sizeof(header)) < 0) {
+    if(fat_read(&file, 0u, &header, sizeof(header)) < 0){ //ELFヘッダー読み取り
         return ERR_ELF_HEADER;
     }
 
-    if (header.ident[0] != 0x7fu || header.ident[1] != 'E' || header.ident[2] != 'L' || header.ident[3] != 'F') {
+    //LF形式の確認
+    //最初にELFマジックナンバーを確認
+    if(header.ident[0] != 0x7fu || header.ident[1] != 'E' || header.ident[2] != 'L' || header.ident[3] != 'F'){ // 0x7F, 'E', 'L', 'F'
         return ERR_ELF_HEADER;
     }
-    if (header.ident[4] != 1u || header.ident[5] != 1u || header.type != ET_EXEC || header.machine != EM_ARM || header.ehsize != sizeof(header) || header.phentsize != sizeof(program) || header.phnum == 0u || header.phnum > MAX_PHNUM){
+    if (header.ident[4] != 1u || header.ident[5] != 1u || header.type != ET_EXEC || header.machine != EM_ARM || header.ehsize != sizeof(header) || header.phentsize != sizeof(program) || header.phnum == 0u || header.phnum > MAX_PHNUM){ // ELF32か, リトルエンディアンか, 実行形式か, ARM向けか確認
         return ERR_ELF_FORMAT;
     }
-    if ((header.entry & 1u) == 0u || header.entry < APP_RAM_START || header.entry >= APP_RAM_END){
+    if ((header.entry & 1u) == 0u || header.entry < APP_RAM_START || header.entry >= APP_RAM_END){ // エントリが 0x20020000~0x2003FFFF に入っているか確認
         return ERR_ELF_RANGE;
     }
 
     memset((void *)APP_RAM_START, 0, (long)(APP_RAM_END - APP_RAM_START));
 
-    for (i = 0u; i < header.phnum; i++) {
+    //Program Headerの処理
+    for(i = 0u; i < header.phnum; i++){ // ELFのProgram Headerを1個ずつ読む
         uint32_t end;
 
-        if (fat_read(&file,
-                     header.phoff + i * (uint32_t)header.phentsize,
-                     &program, sizeof(program)) < 0) {
+        // RAMへコピー
+        if (fat_read(&file, header.phoff + i * (uint32_t)header.phentsize, &program, sizeof(program)) < 0) {
             return ERR_ELF_READ;
         }
-        if (program.type != PT_LOAD || program.memsz == 0u) {
+        if(program.type != PT_LOAD || program.memsz == 0u){ // PT_LOADは実行時にメモリへ置く必要がある (.text, .rodata, .data, .bss)
             continue;
         }
-        if (program.filesz > program.memsz
-            || program.vaddr < APP_RAM_START
-            || program.vaddr >= APP_RAM_END
-            || program.memsz > APP_RAM_END - program.vaddr) {
+        if (program.filesz > program.memsz || program.vaddr < APP_RAM_START || program.vaddr >= APP_RAM_END || program.memsz > APP_RAM_END - program.vaddr) {
             return ERR_ELF_RANGE;
         }
         end = program.vaddr + program.memsz;
@@ -612,14 +622,12 @@ int sd_elf_load(char *filename, uint32_t *entry){
             return ERR_ELF_RANGE;
         }
 
-        if (program.filesz != 0u
-            && fat_read(&file, program.offset, (void *)program.vaddr,
-                        program.filesz) < 0) {
+        if (program.filesz != 0u && fat_read(&file, program.offset, (void *)program.vaddr, program.filesz) < 0) {
             return ERR_ELF_READ;
         }
         if (program.memsz > program.filesz) {
             memset((void *)(program.vaddr + program.filesz), 0,
-                   (long)(program.memsz - program.filesz));
+            (long)(program.memsz - program.filesz));
         }
         loaded++;
     }
