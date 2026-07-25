@@ -2,15 +2,6 @@
 #include "lib.h"
 #include "sd_elf.h"
 
-/*
- * 最小構成:
- *   SPI0  : GP16=MISO, GP17=CS, GP18=SCK, GP19=MOSI
- *   FS    : FAT32のみ
- *   file  : ルートディレクトリのFAT 8.3形式ファイル
- *   ELF   : ELF32 / little endian / ARM / ET_EXEC / PT_LOAD
- *   RAM   : 0x20020000-0x2003ffff (128KB)
- */
-
 #define REG32(address) (*(volatile uint32_t *)(address))
 
 #define APP_RAM_START 0x20020000u
@@ -659,3 +650,12 @@ const char *sd_elf_error(int error){
     default:             return "unknown error";
     }
 }
+
+/*
+ * 最小構成:
+ *   SPI0  : GP16=MISO, GP17=CS, GP18=SCK, GP19=MOSI
+ *   FS    : FAT32のみ
+ *   file  : ルートディレクトリのFAT 8.3形式ファイル
+ *   ELF   : ELF32 / little endian / ARM / ET_EXEC / PT_LOAD
+ *   RAM   : 0x20020000-0x2003ffff (128KB)
+*/
