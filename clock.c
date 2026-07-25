@@ -65,6 +65,12 @@
 #define PLL_PRIM_POSTDIV1_LSB  16
 #define PLL_PRIM_POSTDIV2_LSB  12
 
+#define WATCHDOG_BASE 0x40058000u
+#define WATCHDOG_TICK REG32(WATCHDOG_BASE + 0x2Cu)
+
+#define WATCHDOG_TICK_ENABLE (1u << 9)
+#define WATCHDOG_TICK_CYCLES 12u
+
 static void xosc_init_12mhz(void)
 {
     XOSC_CTRL = XOSC_CTRL_FREQ_RANGE_1_15MHZ;
@@ -169,6 +175,18 @@ static void clk_peri_from_clk_sys(void)
         (CLK_PERI_AUXSRC_CLK_SYS << 5);
 }
 
+static void timer_tick_init_1us(void)
+{
+    /*
+     * clk_ref = 12 MHz
+     *
+     * 12クロックごとに1回tickを発生させる。
+     * 12 MHz / 12 = 1 MHz
+     * したがって1tick = 1 us
+     */
+    WATCHDOG_TICK = WATCHDOG_TICK_ENABLE | WATCHDOG_TICK_CYCLES;
+}
+
 void clock_init_125mhz(void)
 {
     xosc_init_12mhz();
@@ -177,6 +195,11 @@ void clock_init_125mhz(void)
      * まず安全にclk_refをXOSCへ。
      */
     clk_ref_from_xosc();
+
+    /*
+     * TIMERAWLが1 usごとに増えるようにする。
+    */
+    timer_tick_init_1us();
 
     /*
      * PLL_SYSをいじる前に、clk_sysをclk_refへ逃がす。

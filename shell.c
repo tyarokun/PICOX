@@ -5,6 +5,8 @@
 #include "serial.h"
 #include "lib.h"
 #include "shell.h"
+#include "sd_elf.h"
+#include "app.h"
 
 /* Cortex-M0+ Application Interrupt and Reset Control Register */
 #define SCB_AIRCR                  (*(volatile uint32_t *)0xE000ED0C)
@@ -209,14 +211,16 @@ static int command_echo(char *argument);
 static int command_version(char *argument);
 static int command_clear(char *argument);
 static int command_reset(char *argument);
+static int command_run(char *argument);
 
 //コマンドテーブル
 static command_entry commands[] = {
-    {"help",    command_help,    "show this help"},
-    {"echo",    command_echo,    "print text"},
-    {"version", command_version, "show kernel version"},
-    {"clear",   command_clear,   "clear terminal"},
-    {"reset",   command_reset,   "reset the system"},
+    {"help",    command_help,       "show this help"},
+    {"echo",    command_echo,       "print text"},
+    {"version", command_version,    "show kernel version"},
+    {"clear",   command_clear,      "clear terminal"},
+    {"reset",   command_reset,      "reset the system"},
+    {"run",     command_run,        "request"},
 };
 
 #define COMMAND_COUNT ((int)(sizeof(commands) / sizeof(commands[0]))) //コマンドの数
@@ -264,6 +268,21 @@ static int command_reset(char *argument){
     }
 }
 
+static int command_run(char *argument){
+    int size;
+    char *filename;
+    if(argument == NULL || *argument == '\0'){
+        send_write("usage: run FILE.ELF\n");
+        return -1;
+    }
+    size = strlen(argument) + 1;
+    filename = (char *)picox_malloc(size);
+    memcpy(filename, argument, size);
+    picox_send(MSGBOX_ID_APPREQUEST, size, filename);
+    send_write("run request sent\n");
+    return 0;
+}
+
 //入力行からコマンドと引数を分ける
 static int command_execute(char *line){
     char *command;
@@ -308,7 +327,7 @@ int shell_main(int argc, char *argv[]){
 
     send_write("\nPicoX shell started\n");
 
-    for (;;) {
+    while(1){
         send_write("picox> ");
         picox_recv(MSGBOX_ID_CONSINPUT, &size, &line); //受信待ち
         command_execute(line); //コマンド解析

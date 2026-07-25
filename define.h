@@ -16,6 +16,7 @@ typedef enum{
     MSGBOX_ID_MSGBOX2,
     MSGBOX_ID_CONSINPUT,
     MSGBOX_ID_CONSOUTPUT,
+    MSGBOX_ID_APPREQUEST,
     MSGBOX_ID_NUM,
 } picox_msgbox_id_t;
 
