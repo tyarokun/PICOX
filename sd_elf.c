@@ -124,13 +124,11 @@ typedef struct __attribute__((packed)) {
     uint32_t align;
 } elf32_program_header;
 
-static uint16_t get_u16(const uint8_t *p)
-{
+static uint16_t get_u16(const uint8_t *p){
     return (uint16_t)((uint16_t)p[0] | ((uint16_t)p[1] << 8));
 }
 
-static uint32_t get_u32(const uint8_t *p)
-{
+static uint32_t get_u32(const uint8_t *p){
     return (uint32_t)p[0]
         | ((uint32_t)p[1] << 8)
         | ((uint32_t)p[2] << 16)
@@ -139,8 +137,7 @@ static uint32_t get_u32(const uint8_t *p)
 
 /* ---------- SPI ---------- */
 
-static uint8_t spi_transfer(uint8_t value)
-{
+static uint8_t spi_transfer(uint8_t value){
     while ((SSPSR & SSPSR_TNF) == 0u) {
     }
     SSPDR = value;
@@ -149,18 +146,15 @@ static uint8_t spi_transfer(uint8_t value)
     return (uint8_t)SSPDR;
 }
 
-static void cs_high(void)
-{
+static void cs_high(void){
     SIO_GPIO_OUT_SET = CS_MASK;
 }
 
-static void cs_low(void)
-{
+static void cs_low(void){
     SIO_GPIO_OUT_CLR = CS_MASK;
 }
 
-static void spi_set_speed(uint32_t divider)
-{
+static void spi_set_speed(uint32_t divider){
     uint32_t dummy;
 
     SSPCR1 = 0u;
@@ -173,8 +167,7 @@ static void spi_set_speed(uint32_t divider)
     SSPCR1 = SSPCR1_SSE;
 }
 
-static void spi_init(void)
-{
+static void spi_init(void){
     RESETS_RESET &= ~RESET_SPI0;
     while ((RESETS_RESET_DONE & RESET_SPI0) == 0u) {
     }
@@ -194,14 +187,12 @@ static void spi_init(void)
 
 /* ---------- SD card ---------- */
 
-static void sd_deselect(void)
-{
+static void sd_deselect(void){
     cs_high();
     (void)spi_transfer(0xffu);
 }
 
-static uint8_t sd_command(uint8_t command, uint32_t argument)
-{
+static uint8_t sd_command(uint8_t command, uint32_t argument){
     uint8_t response = 0xffu;
     uint8_t crc = 0x01u;
     uint32_t i;
@@ -232,8 +223,7 @@ static uint8_t sd_command(uint8_t command, uint32_t argument)
     return response;
 }
 
-static int sd_init(void)
-{
+static int sd_init(void){
     uint8_t response;
     uint8_t r7[4];
     uint8_t ocr[4];
@@ -319,8 +309,7 @@ static int sd_init(void)
     return 0;
 }
 
-static int sd_read_sector(uint32_t lba, uint8_t *buffer)
-{
+static int sd_read_sector(uint32_t lba, uint8_t *buffer){
     uint32_t argument = sd_block_addressing ? lba : lba * SECTOR_SIZE;
     uint8_t response;
     uint8_t token = 0xffu;
@@ -354,19 +343,11 @@ static int sd_read_sector(uint32_t lba, uint8_t *buffer)
 
 /* ---------- FAT32 ---------- */
 
-static int looks_like_fat32(const uint8_t *boot)
-{
-    return get_u16(boot + 11u) == SECTOR_SIZE
-        && boot[13] != 0u
-        && get_u16(boot + 17u) == 0u
-        && get_u16(boot + 22u) == 0u
-        && get_u32(boot + 36u) != 0u
-        && boot[510] == 0x55u
-        && boot[511] == 0xaau;
+static int looks_like_fat32(const uint8_t *boot){
+    return get_u16(boot + 11u) == SECTOR_SIZE && boot[13] != 0u && get_u16(boot + 17u) == 0u && get_u16(boot + 22u) == 0u && get_u32(boot + 36u) != 0u && boot[510] == 0x55u && boot[511] == 0xaau;
 }
 
-static int fat_mount(void)
-{
+static int fat_mount(void){
     uint32_t boot_lba = 0u;
     uint32_t reserved;
     uint32_t fat_size;
@@ -400,13 +381,11 @@ static int fat_mount(void)
     return 0;
 }
 
-static uint32_t cluster_lba(uint32_t cluster)
-{
+static uint32_t cluster_lba(uint32_t cluster){
     return data_start_lba + (cluster - 2u) * sectors_per_cluster;
 }
 
-static int fat_next_cluster(uint32_t cluster, uint32_t *next)
-{
+static int fat_next_cluster(uint32_t cluster, uint32_t *next){
     uint32_t offset = cluster * 4u;
 
     if (sd_read_sector(fat_start_lba + offset / SECTOR_SIZE,
@@ -417,16 +396,14 @@ static int fat_next_cluster(uint32_t cluster, uint32_t *next)
     return 0;
 }
 
-static uint8_t fat_upper(uint8_t c)
-{
+static uint8_t fat_upper(uint8_t c){
     if (c >= 'a' && c <= 'z') {
         return (uint8_t)(c - ('a' - 'A'));
     }
     return c;
 }
 
-static int fat_make_short_name(const char *filename, uint8_t name[11])
-{
+static int fat_make_short_name(const char *filename, uint8_t name[11]){
     uint32_t base_length = 0u;
     uint32_t extension_length = 0u;
     int extension = 0;
@@ -478,8 +455,7 @@ static int fat_make_short_name(const char *filename, uint8_t name[11])
     return 0;
 }
 
-static int fat_find_file(const uint8_t name[11], fat_file *file)
-{
+static int fat_find_file(const uint8_t name[11], fat_file *file){
     uint32_t cluster = root_cluster;
     uint32_t sector_index;
     uint32_t entry_index;
@@ -520,9 +496,7 @@ static int fat_find_file(const uint8_t name[11], fat_file *file)
     return 1;
 }
 
-static int fat_read(const fat_file *file, uint32_t offset,
-                    void *buffer, uint32_t length)
-{
+static int fat_read(const fat_file *file, uint32_t offset, void *buffer, uint32_t length){
     uint8_t *destination = (uint8_t *)buffer;
     uint32_t cluster_size = sectors_per_cluster * SECTOR_SIZE;
     uint32_t cluster = file->first_cluster;
@@ -574,8 +548,7 @@ static int fat_read(const fat_file *file, uint32_t offset,
 
 /* ---------- ELF loader ---------- */
 
-int sd_elf_load(char *filename, uint32_t *entry)
-{
+int sd_elf_load(char *filename, uint32_t *entry){
     uint8_t short_name[11];
     fat_file file;
     elf32_header header;
@@ -667,8 +640,7 @@ int sd_elf_load(char *filename, uint32_t *entry)
     return 0;
 }
 
-const char *sd_elf_error(int error)
-{
+const char *sd_elf_error(int error){
     switch (error) {
     case ERR_SD_INIT:    return "SD init failed";
     case ERR_SD_READ:    return "SD read failed";
