@@ -14,7 +14,7 @@ int app_main(int argc, char *argv[]){
     while(1){
         size = 0;
         filename = NULL;
-        picox_recv(MSGBOX_ID_APPREQUEST, &size, &filename); //受信待ち
+        picox_recv(MSGBOX_ID_APPREQUEST, &size, &filename); //受信待ち(filenameを受け取る)
         load_result = sd_elf_load(filename, &entry_address);
         picox_free(filename);
         if(load_result < 0){
