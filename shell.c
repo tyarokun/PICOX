@@ -23,7 +23,6 @@ typedef struct {
     char *description;    //説明文(help用)
 } command_entry;
 
-
 //コマンド前の空白を読み飛ばす
 static char *skip_spaces(char *p){
     while (*p == ' ') {
@@ -139,15 +138,16 @@ static int command_execute(char *line){
 }
 
 int shell_main(int argc, char *argv[]){
-    char *line;
+    char *line, *result;
     int size;
 
     consdrv_write("\nPicoX shell started\n");
     while(1){
         consdrv_write("picox> ");
-        picox_recv(MSGBOX_ID_CONSINPUT, &size, &line);
+        picox_recv(MSGBOX_ID_CONSRX, &size, &line);
         command_execute(line); //コマンド解析
         picox_free(line);
+        consdrv_write(result);
     }
 
     return 0;

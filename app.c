@@ -4,6 +4,7 @@
 #include "kernel.h"
 #include "sd_elf.h"
 #include "consdrv.h"
+#include "lib.h"
 
 int app_main(int argc, char *argv[]){
     int size;

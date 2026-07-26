@@ -110,7 +110,7 @@ static void send_input_line(console_device *cons){
     message = (char *)picoxs_malloc(size);
     memcpy(message, cons->recv_buffer, cons->recv_length);
     message[cons->recv_length] = '\0'; //末尾に'\0'を入れる
-    picoxs_send(MSGBOX_ID_CONSINPUT, size, message);
+    picoxs_send(MSGBOX_ID_CONSRX, size, message);
     cons->recv_length = 0;
 }
 
@@ -181,7 +181,7 @@ int consdrv_write(char *text){
     length = strlen(text);
     message = (char *)picox_malloc(length);
     memcpy(message, text, length);
-    picox_send(MSGBOX_ID_CONSOUTPUT, length, message);
+    picox_send(MSGBOX_ID_CONSTX, length, message);
 }
 
 // コンソールドライバのスレッド
@@ -198,7 +198,7 @@ int consdrv_main(int argc, char *argv[]){
     while(1){
         size = 0;
         message = NULL;
-        picox_recv(MSGBOX_ID_CONSOUTPUT, &size, &message);
+        picox_recv(MSGBOX_ID_CONSTX, &size, &message);
         if(message != NULL && size > 0){
             send_text(&console, message, size); //コンソールへ表示
         }
