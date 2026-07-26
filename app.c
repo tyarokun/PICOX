@@ -3,6 +3,7 @@
 #include "serial.h"
 #include "kernel.h"
 #include "sd_elf.h"
+#include "consdrv.h"
 
 int app_main(int argc, char *argv[]){
     int size;
@@ -18,6 +19,7 @@ int app_main(int argc, char *argv[]){
         load_result = sd_elf_load(filename, &entry_address);
         picox_free(filename);
         if(load_result < 0){
+            consdrv_write("Load failed\n");
             continue;
         }
         entry = (picox_func_t)entry_address;
