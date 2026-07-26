@@ -14,9 +14,11 @@ typedef void (*picox_handler_t)(void);
 typedef enum{
     MSGBOX_ID_MSGBOX1 = 0,
     MSGBOX_ID_MSGBOX2,
-    MSGBOX_ID_CONSRX, //UART0_RX
-    MSGBOX_ID_CONSTX, //UART0_TX
+    MSGBOX_ID_CONSRX,
+    MSGBOX_ID_CONSTX,
     MSGBOX_ID_APPREQUEST,
+    MSGBOX_ID_SDREQUEST,
+    MSGBOX_ID_SDRESULT,
     MSGBOX_ID_NUM,
 } picox_msgbox_id_t;
 

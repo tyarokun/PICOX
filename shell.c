@@ -5,7 +5,6 @@
 #include "serial.h"
 #include "lib.h"
 #include "shell.h"
-#include "sd_elf.h"
 #include "app.h"
 #include "consdrv.h"
 
@@ -138,7 +137,7 @@ static int command_execute(char *line){
 }
 
 int shell_main(int argc, char *argv[]){
-    char *line, *result;
+    char *line;
     int size;
 
     consdrv_write("\nPicoX shell started\n");
@@ -147,7 +146,6 @@ int shell_main(int argc, char *argv[]){
         picox_recv(MSGBOX_ID_CONSRX, &size, &line);
         command_execute(line); //コマンド解析
         picox_free(line);
-        consdrv_write(result);
     }
 
     return 0;

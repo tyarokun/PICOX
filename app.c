@@ -1,10 +1,8 @@
 #include "app.h"
 #include "define.h"
-#include "serial.h"
 #include "kernel.h"
-#include "sd_elf.h"
+#include "sddrv.h"
 #include "consdrv.h"
-#include "lib.h"
 
 int app_main(int argc, char *argv[]){
     int size;
@@ -13,18 +11,35 @@ int app_main(int argc, char *argv[]){
     picox_func_t entry;
     int load_result;
 
+    (void)argc;
+    (void)argv;
+
     while(1){
         size = 0;
         filename = NULL;
-        picox_recv(MSGBOX_ID_APPREQUEST, &size, &filename); //受信待ち(filenameを受け取る)
-        load_result = sd_elf_load(filename, &entry_address);
-        picox_free(filename);
+
+        // shellから実行するファイル名を受け取る
+        picox_recv(MSGBOX_ID_APPREQUEST, &size, &filename);
+
+        // 実際のSDカード読み出しとELFロードはsddrvスレッドが行う
+        load_result = sddrv_load_elf(filename, &entry_address);
+
+        if(filename != NULL){
+            picox_free(filename);
+        }
+
         if(load_result < 0){
-            consdrv_write("Load failed\n");
+            consdrv_write("Load failed: ");
+            consdrv_write((char *)sddrv_error(load_result));
+            consdrv_write("\n");
             continue;
         }
+
         entry = (picox_func_t)entry_address;
-        //アプリスレッドのコンテキストで実行する
+
+        /* ロード完了後のアプリコードはappスレッドの文脈で実行する。 */
         entry(0, NULL);
     }
+
+    return 0;
 }
