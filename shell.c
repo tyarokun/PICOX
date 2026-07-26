@@ -140,7 +140,7 @@ int shell_main(int argc, char *argv[]){
     char *line;
     int size;
 
-    consdrv_write("\nPicoX shell started\n");
+    consdrv_write("\nPICOX shell started\n");
     while(1){
         consdrv_write("picox> ");
         picox_recv(MSGBOX_ID_CONSRX, &size, &line);
