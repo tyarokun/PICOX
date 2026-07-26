@@ -21,7 +21,7 @@ int app_main(int argc, char *argv[]){
         // shellから実行するファイル名を受け取る
         picox_recv(MSGBOX_ID_APPREQUEST, &size, &filename);
 
-        // 実際のSDカード読み出しとELFロードはsddrvスレッドが行う
+        // 実際のSDカード読み出しとELFロードはsddrvスレッドが行う(メッセージ通信で処理を渡す)
         load_result = sddrv_load_elf(filename, &entry_address);
 
         if(filename != NULL){
