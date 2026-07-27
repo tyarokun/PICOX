@@ -1,69 +1,70 @@
 # PICOX
 
-PICOX is an educational embedded operating system for the Raspberry Pi Pico
-(RP2040 / Arm Cortex-M0+).
+PICOXは、Raspberry Pi Pico（RP2040 / Arm Cortex-M0+）向けの学習用組込みOSです。
 
-## Pin assignment
+## ピン配置
 
 ### UART0
 
-| Signal | GPIO | Pico pin |
+| 信号 | GPIO | Picoのピン番号 |
 |---|---:|---:|
 | UART0 TX | GPIO0 | 1 |
 | UART0 RX | GPIO1 | 2 |
 | GND | - | 3 |
 
-Connect the UART adapter as follows:
+USB-UART変換アダプタとは、次のように接続します。
 
 ```text
-Pico GPIO0 (TX) -> USB-UART RX
-Pico GPIO1 (RX) -> USB-UART TX
-Pico GND        -> USB-UART GND
+Pico GPIO0（TX） -> USB-UART RX
+Pico GPIO1（RX） -> USB-UART TX
+Pico GND         -> USB-UART GND
 ```
 
-Use a 3.3 V UART adapter.
+3.3 VのUART信号に対応した変換アダプタを使用してください。
 
-### SD card / SPI0
+### SDカード（SPI0）
 
-| Signal | GPIO | Pico pin | SD card |
+| 信号 | GPIO | Picoのピン番号 | SDカード側 |
 |---|---:|---:|---|
 | MISO | GPIO16 | 21 | DO |
 | CS | GPIO17 | 22 | CS |
 | SCK | GPIO18 | 24 | CLK |
 | MOSI | GPIO19 | 25 | DI |
 | 3.3 V | - | 36 | VCC |
-| GND | - | 23 or 38 | GND |
+| GND | - | 23または38 | GND |
+
+接続は次のとおりです。
 
 ```text
-Pico GPIO16 (MISO) -> SD DO
-Pico GPIO17 (CS)   -> SD CS
-Pico GPIO18 (SCK)  -> SD CLK
-Pico GPIO19 (MOSI) -> SD DI
-Pico 3.3V          -> SD VCC
-Pico GND           -> SD GND
+Pico GPIO16（MISO） -> SD DO
+Pico GPIO17（CS）   -> SD CS
+Pico GPIO18（SCK）  -> SD CLK
+Pico GPIO19（MOSI） -> SD DI
+Pico 3.3V           -> SD VCC
+Pico GND            -> SD GND
 ```
 
-Use an SD card module that supports 3.3 V logic.
+3.3 Vの信号に対応したSDカードモジュールを使用してください。
 
-## Requirements
+## 必要なもの
 
 - Raspberry Pi Pico
 - Raspberry Pi Pico SDK
 - GNU Arm Embedded Toolchain
 - CMake
 - Make
-- USB-UART adapter
-- SPI microSD card module
+- USB-UART変換アダプタ
+- SPI接続のmicroSDカードモジュール
 
-## Build
+## ビルド方法
 
-Set `PICO_SDK_PATH`:
+環境変数 `PICO_SDK_PATH` にRaspberry Pi Pico SDKの場所を設定します。
 
 ```sh
 export PICO_SDK_PATH=/path/to/pico-sdk
 ```
 
-Create the build directory and build PICOX:
+その後、PICOXのディレクトリでビルドします。
 
 ```sh
 mkdir -p build
@@ -72,29 +73,30 @@ cmake ..
 make
 ```
 
-After a successful build, write the generated UF2 file to the Raspberry Pi
-Pico while it is in BOOTSEL mode.
+ビルドに成功するとUF2ファイルが生成されます。
 
-## Starting PICOX
+Raspberry Pi PicoのBOOTSELボタンを押しながらUSBへ接続し、生成されたUF2ファイルを書き込んでください。
 
-Connect the USB-UART adapter and open a serial terminal.
+## PICOXの起動
 
-Example:
+USB-UART変換アダプタを接続し、シリアルターミナルを開きます。
+
+macOSでの例：
 
 ```sh
 screen /dev/tty.usbserial-XXXX 115200
 ```
 
-After startup:
+正常に起動すると、次のように表示されます。
 
 ```text
 PICOX shell started
 picox>
 ```
 
-## Shell commands
+## シェルコマンド
 
-The available commands include:
+使用できるコマンドには、次のものがあります。
 
 ```text
 help
@@ -106,21 +108,35 @@ reset
 run FILE.ELF
 ```
 
-Show the command list:
+コマンド一覧を表示する例：
 
 ```text
 picox> help
 ```
 
-Run an ELF application from the SD card:
+SDカード上のELFファイルを実行する例：
 
 ```text
 picox> run LED.ELF
 ```
 
-The ELF filename should use a FAT 8.3-compatible name.
+## SDカードの準備
 
-Example:
+1. SDカードをFAT32でフォーマットします。
+2. 実行するELFファイルをSDカードのルートディレクトリへコピーします。
+3. SDカードをPicoへ接続したモジュールに挿入します。
+4. PICOXを起動します。
+5. `run` コマンドでELFファイルを指定します。
+
+例：
+
+```text
+picox> run LED.ELF
+```
+
+ファイル名には、FATの8.3形式に収まる名前を使用してください。
+
+例：
 
 ```text
 LED.ELF
@@ -128,30 +144,14 @@ APP.ELF
 TEST.ELF
 ```
 
-## SD card preparation
+PICOXはSDカードからELFファイルを読み込み、ロード対象のセグメントをRAMへ配置して、エントリポイントを呼び出します。
 
-1. Format the SD card as FAT32.
-2. Copy an ELF application to the root directory.
-3. Insert the SD card before starting PICOX.
-4. Start PICOX.
-5. Execute the file with the `run` command.
+## アプリケーション用RAM領域
 
-Example:
-
-```text
-picox> run LED.ELF
-```
-
-PICOX reads the ELF file from the SD card, loads its loadable segments into the
-application RAM area, and calls its entry point.
-
-## Application memory area
-
-The current ELF loader uses the following RAM area:
+現在のELFローダーでは、次のRAM領域をアプリケーション用として使用します。
 
 ```text
 0x20020000 - 0x2003FFFF
 ```
 
-Applications must be linked so that their loadable segments and entry point are
-inside this range.
+アプリケーションのロード対象セグメントとエントリポイントが、この範囲に収まるようにリンクしてください。

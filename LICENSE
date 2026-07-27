@@ -1,27 +1,29 @@
-PICOX LICENSE AND THIRD-PARTY LICENSE INFORMATION
+PICOXのライセンスおよび第三者ライセンスについて
 =================================================
 
-PICOX contains original code, code derived from KOZOS, and code developed with
-reference to or adapted from other open-source projects.
+PICOXには、PICOXとして新たに作成したコード、KOZOSを基にしたコード、
+および他のオープンソースプロジェクトを参考または改変したコードが含まれます。
 
-The applicable license depends on the origin of each part.
+適用されるライセンスは、それぞれのコードの由来によって異なります。
 
-1. PICOX original code and KOZOS-derived code
----------------------------------------------
 
-PICOX is based on KOZOS, an educational embedded operating system developed by
-Hiroaki Sakai（坂井弘亮）.
+1. PICOX独自部分およびKOZOS由来部分
+====================================
 
-Unless otherwise stated, original PICOX code and code derived from KOZOS are
-distributed under KL-01（川合堂ライセンス-01）.
+PICOXは、坂井弘亮氏が開発した学習用組込みOS「KOZOS」を基に作成しています。
 
-Original project:
-  KOZOS
-  Author: Hiroaki Sakai（坂井弘亮）
-  Website: https://kozos.jp/kozos/
-  License: KL-01（川合堂ライセンス-01）
+各ファイルまたは各部分に別の記載がない限り、PICOXとして新たに作成した部分と
+KOZOSを基にした部分には、川合堂ライセンス-01（KL-01）を適用します。
 
-Full KL-01 text:
+元となったプロジェクト：
+
+  プロジェクト名：KOZOS
+  作者：坂井弘亮
+  公式サイト：https://kozos.jp/kozos/
+  ライセンス：川合堂ライセンス-01（KL-01）
+
+以下に、川合堂ライセンス-01の原文を掲載します。
+
 
 川合堂ライセンス-01  ver.1.0
                                                   2000.12.30  H.Kawai (川合秀実)
@@ -142,21 +144,24 @@ Full KL-01 text:
        e-mail     kawai@osask.jp
 
 
-2. no-OS-FatFS-SD-SPI-RPi-Pico
--------------------------------
 
-The SD card, SPI, and filesystem-related implementation of PICOX was developed
-with reference to, and may contain code adapted from, the following project:
+2. no-OS-FatFS-SD-SPI-RPi-Pico由来部分
+=======================================
 
-  Project: no-OS-FatFS-SD-SPI-RPi-Pico
-  Repository: https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico
-  Repository owner: carlk3
-  License: Apache License 2.0
+PICOXのSDカード、SPIおよびファイルシステムに関連する実装では、
+次のプロジェクトを参考にしています。また、一部に同プロジェクトを基に
+改変したコードが含まれる場合があります。
 
-Any portion copied from or substantially adapted from that project remains
-subject to the Apache License 2.0.
+  プロジェクト名：no-OS-FatFS-SD-SPI-RPi-Pico
+  リポジトリ：https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico
+  リポジトリ所有者：carlk3
+  ライセンス：Apache License 2.0
 
-Full Apache License 2.0 text:
+同プロジェクトからコピーした部分、または実質的に同プロジェクトを基に
+改変した部分には、Apache License 2.0が適用されます。
+
+以下に、Apache License 2.0の原文を掲載します。
+
 
                                  Apache License
                            Version 2.0, January 2004
@@ -336,15 +341,17 @@ Full Apache License 2.0 text:
    END OF TERMS AND CONDITIONS
 
 
-3. FatFs
---------
 
-The no-OS-FatFS-SD-SPI-RPi-Pico project includes FatFs, developed by ChaN.
+3. FatFs由来部分
+=================
 
-If PICOX includes FatFs source code, that source remains subject to the FatFs
-license.
+no-OS-FatFS-SD-SPI-RPi-Picoには、ChaN氏が開発したFatFsが含まれています。
 
-Full FatFs license text:
+PICOXにFatFsのソースコードが含まれる場合、その部分にはFatFs Licenseが
+適用されます。
+
+以下に、FatFs Licenseの原文を掲載します。
+
 
 FatFs License
 
