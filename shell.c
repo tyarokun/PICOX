@@ -94,23 +94,19 @@ static int command_reset(char *argument){
 }
 
 static int command_run(char *argument){
-    int request_size, result_size;
-    char *filename, *result;
+    int size;
+    char *filename;
     if(argument == NULL || *argument == '\0'){
         consdrv_write("usage: run FILE.ELF\n");
         return -1;
     }
-    request_size = strlen(argument) + 1;
-    filename = (char *)picox_malloc(request_size);
-    memcpy(filename, argument, request_size);
-    picox_send(MSGBOX_ID_APPREQUEST, request_size, filename); //appスレッドへ要求
+    size = strlen(argument) + 1;
+    filename = (char *)picox_malloc(size);
+    memcpy(filename, argument, size);
+    picox_send(MSGBOX_ID_APPREQUEST, size, filename); //appスレッドへ要求
     consdrv_write("run request sent\n");
-    //runコマンドの実行結果を受け取るまでまつ
-    picox_recv(MSGBOX_ID_APPRESULT, &result_size, &result);
-    consdrv_write("Load failed: ");
-    consdrv_write(result);
-    consdrv_write("\n");
-    picox_free(result);
+    //runコマンドの実行終了まで待機
+    picox_recv(MSGBOX_ID_CMDEND, NULL, NULL);
     return 0;
 }
 
