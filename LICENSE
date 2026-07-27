@@ -1,0 +1,369 @@
+PICOX LICENSE AND THIRD-PARTY LICENSE INFORMATION
+=================================================
+
+PICOX contains original code, code derived from KOZOS, and code developed with
+reference to or adapted from other open-source projects.
+
+The applicable license depends on the origin of each part.
+
+1. PICOX original code and KOZOS-derived code
+---------------------------------------------
+
+PICOX is based on KOZOS, an educational embedded operating system developed by
+Hiroaki Sakai（坂井弘亮）.
+
+Unless otherwise stated, original PICOX code and code derived from KOZOS are
+distributed under KL-01（川合堂ライセンス-01）.
+
+Original project:
+  KOZOS
+  Author: Hiroaki Sakai（坂井弘亮）
+  Website: https://kozos.jp/kozos/
+  License: KL-01（川合堂ライセンス-01）
+
+Full KL-01 text:
+
+川合堂ライセンス-01  ver.1.0
+                                                  2000.12.30  H.Kawai (川合秀実)
+                                                  2007.10.07 リンク修正:あっきぃ
+
+０．概要
+
+  平たく言うと、「フリーソフトです。使用前使用後に対価を支払うことなく、自由に使
+えます。コピーしてもいいです。改変してもいいです。商業利用してもいいです。でもバ
+グなどで損害が出ても責任はとれません。」ってことです。
+
+  利用者や改変したり参考にしたりする人の利益のために、プログラム中で使っているア
+ルゴリズムで著作者が将来特許をとることがあっても、特許料を要求したりはしないとい
+う保証もあります。
+
+１．目的
+
+  このライセンスで提供されるソフトウェアは、少しでも多くの人に利益をもたらし、ソ
+フトウェア技術の進歩に少しでも貢献できればという目的で公開する。
+
+２．趣旨
+
+  このライセンスは、著作権を放棄するものではない（独占的にコピーする権利は放棄し
+ている）。利用者はこのソフトウェアの一部または全部を自由にコピーし、再配布するこ
+とができる。利用に際して対価を要求しない。解析、改変も対価なしに認める。
+
+  このライセンスが適用されるソフトウェアの利用について、商業的な利用も無条件で認
+める。そのまま有償で販売しても構わない。
+
+  このライセンスが適用されるソフトウェアの一部または全部を元にして作成されたソフ
+トウェア（以降、派生物と称する）に対し、どんなライセンスを付与してもよい。すなわ
+ち、派生物がコピー禁止であってもよいし、派生物が有償でしか配布されなくても構わな
+い。もちろん無償であってもよい。派生物に対する著作権は、派生物を生成した者に帰し
+、このライセンスが適用されるソフトウェアの著作者が派生物に対して著作権を主張する
+ことはない。
+
+  派生物のドキュメント中に、元にしたソフトウェアの著作者を紹介する義務はない。こ
+の文は、もちろん、紹介することを禁止するものでもない。
+
+  派生物の公開に際して、元にしたソフトウェアの著作者に確認を取る義務はない。この
+文は、もちろん、確認を禁止するものではない。
+
+  著作者は、ソフトウェアの質を保証しない。したがって、このソフトウェアで被害を被
+ったり、期待した結果が得られなくても、著作者は責任を負わない。
+
+  このライセンスが適用されるソフトウェアで使われている技術については、事前に著作
+者に許された者以外が特許を取得することは禁止する。新たな技術を加えた派生物を生成
+し、その追加された部分の特許をとることは認める。著作者がソフトウェア中の技術に対
+して後から特許をとることはありうるが、派生物やこのソフトウェアの利用に対して特許
+料やその他の対価を求めることはないことを保証する。この保証は、特許取得前に生成さ
+れた派生物だけでなく、特許取得後に生成された派生物にも適用される。
+
+  解析結果をまとめて特許をとることには事前の著作者の許可が必要だか、特許をとるこ
+と以外については何ら制限はない。
+
+３．補足
+
+  基本的に、コピーは大歓迎です。もし、著作者に何か恩を感じたら、一人でも多くの人
+にこのソフトウェアをすすめて、コピーしてあげて下さい。著作者は多くの人に使っても
+らいたいと思っているので、コピーすれば著作者は喜びます。それでも足りないと感じた
+ら、是非、感想を著作者に送ってあげて下さい。そうすれば、もっと喜ぶでしょう。
+
+  これでライセンスされたソフトウェアの著作権情報だけを改変し、それを再配布するこ
+とはこのライセンスによって禁止されていません。派生物扱いです。これは抜け穴ではな
+いです。したがって、著作権情報だけを書き換えて再配布することが必要なら、していた
+だいてかまいません。
+
+  バグを取ったり、機能を追加していただくのはもちろんですが、プログラムに註釈を付
+けて読みやすくしたり、ドキュメントを補足するなど、そういうバイナリーや実行結果に
+反映されないような改変も大歓迎です。そういう派生物ができたら、連絡してもらえると
+うれしいです（義務ではありません）。
+
+  何か疑問点があったり、派生物を作成する上で情報が不足していると感じたら、著作者
+に連絡をとって質問することができます。ただ、著作者の都合ですぐには返事ができない
+かもしれません。それはご容赦ください。このライセンスそのものの不備などを指摘する
+場合は、著作者か川合堂にご連絡ください。
+
+  もしかすると、これでライセンスされたソフトウェアで利用されている技術について、
+著作者の許可の無い者が特許を取得することを禁じていることが、日本の特許法に抵触し
+ているかもしれません（ご意見を待っています）。これについて、ライセンスを最初に提
+唱した川合秀実の見解を以下に書いておきます。
+
+  特許法が制定された背景には、発明者が自分の発明による利益を守るために発明の詳細
+を公表しないことが科学技術の進歩を遅らせるから、公表してもらう代わりに一定期間の
+独占利用を法的に保護する、という精神があります。このライセンスでは、発明の詳細を
+意図的に隠すつもりはなく、したがって特許を取ることを禁止しても特許法の精神には反
+していないと考えています。むしろ、このライセンスの精神を汲まない者が特許を取得し
+オリジナルのソフトウェアや派生物に対して特許料を請求するかもしれない不安の方が、
+科学技術の進歩を遅らせると考えます。したがって、その不安を事前に払拭したこのライ
+センスは特許法に適ったものだと考えています。
+
+  もちろん、一番安心なのは、オリジナルのソフトウェアで発明と認められるすべてのも
+のについて著作者が特許を取得して、他者の特許取得を事前に妨げればいいのですが、そ
+れは著作者には負担になる場合があります。その負担とソフトウェアを公開するかどうか
+を天秤にかけなければいけないとしたら、公開をあきらめてしまう場合もあるかもしれま
+せん。それは特許法の精神の期待するものではありませんし、我々の目的（「１．目的」
+を参照）にも沿いません。
+
+  また、発明の詳細が特許法の形式によって記述されていないために明らかでない場合、
+著作者以外のものが許可なくそれを解析して明らかにすることは、このライセンスで認め
+られていています。それを無償で公開してもいいですし、有償で販売することもできます
+。
+
+  なお、これでライセンスされたソフトウェア中のすべての技術に対して、利用に際して
+特許料を支払う心配が全く無いわけではありません。公開の時点で有効な特許による技術
+がソフトウェア内で使われていれば、それについては特許保持者からの特許料要求があり
+えます。このライセンスが特許料の心配無しと保証しているのは、このソフトウェア内で
+新たに発明と認められる技術に対してのみです。
+
+  このライセンスを自分のソフトウェアに適用したいと思う方がおられましたら、事前・
+事後に許可を求めることなく使っていただいてかまいません。もし不都合があれば、ライ
+センス文を改変して使っていただいてもいいです。改変の際には、混乱を防ぐためにライ
+センス名を変更するのを忘れないようにしてください。
+
+４．リンク
+
+  川合秀実URL     http://k.osask.jp/
+       e-mail     kawai@osask.jp
+
+
+2. no-OS-FatFS-SD-SPI-RPi-Pico
+-------------------------------
+
+The SD card, SPI, and filesystem-related implementation of PICOX was developed
+with reference to, and may contain code adapted from, the following project:
+
+  Project: no-OS-FatFS-SD-SPI-RPi-Pico
+  Repository: https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico
+  Repository owner: carlk3
+  License: Apache License 2.0
+
+Any portion copied from or substantially adapted from that project remains
+subject to the Apache License 2.0.
+
+Full Apache License 2.0 text:
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of such Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+
+3. FatFs
+--------
+
+The no-OS-FatFS-SD-SPI-RPi-Pico project includes FatFs, developed by ChaN.
+
+If PICOX includes FatFs source code, that source remains subject to the FatFs
+license.
+
+Full FatFs license text:
+
+FatFs License
+
+/*----------------------------------------------------------------------------/
+/  FatFs - Generic FAT Filesystem Module  Rx.xx                               /
+/-----------------------------------------------------------------------------/
+/
+/ Copyright (C) 20xx, ChaN, all right reserved.
+/
+/ FatFs module is an open source software. Redistribution and use of FatFs in
+/ source and binary forms, with or without modification, are permitted provided
+/ that the following condition is met:
+/
+/ 1. Redistributions of source code must retain the above copyright notice,
+/    this condition and the following disclaimer.
+/
+/ This software is provided by the copyright holder and contributors "AS IS"
+/ and any warranties related to this software are DISCLAIMED.
+/ The copyright owner or contributors be NOT LIABLE for any damages caused
+/ by use of this software.
+/----------------------------------------------------------------------------*/
+
