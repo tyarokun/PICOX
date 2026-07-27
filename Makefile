@@ -4,48 +4,55 @@ CC := arm-none-eabi-gcc
 GDB := arm-none-eabi-gdb
 OPENOCD := openocd
 
+SRC_DIR := src
+BUILD_DIR := build
+
 OPENOCD_INTERFACE := interface/cmsis-dap.cfg
 OPENOCD_TARGET := target/rp2040.cfg
 ADAPTER_SPEED := 1000
 
 CFLAGS := -mcpu=cortex-m0plus -mthumb -std=c11 -Wall -Wextra \
-          -ffreestanding -fno-builtin -O0 -g3
+          -ffreestanding -fno-builtin -O0 -g3 \
+          -I$(SRC_DIR)
 
-LDFLAGS := -T linker.ld -nostartfiles -nostdlib \
-           -Wl,-Map=$(TARGET).map
+LDFLAGS := -T $(SRC_DIR)/linker.ld -nostartfiles -nostdlib \
+           -Wl,-Map=$(BUILD_DIR)/$(TARGET).map
 
 OBJS := boot2.o handler.o vector_table.o serial.o main.o clock.o interrupt.o kernel.o syscall.o lib.o memory.o shell.o consdrv.o exec.o sddrv.o spi.o elf_loader.o fat32.o
 
+OBJS := $(addprefix $(BUILD_DIR)/,$(OBJS))
+
 .PHONY: all flash openocd gdb clean reset erase
 
-all: $(TARGET).elf
+all: $(BUILD_DIR)/$(TARGET).elf
 
-$(TARGET).elf: $(OBJS)
+$(BUILD_DIR)/$(TARGET).elf: $(OBJS)
 	$(CC) $(CFLAGS) \
 	      $(LDFLAGS) \
-	      -o $(TARGET).elf \
+	      -o $(BUILD_DIR)/$(TARGET).elf \
 	      $(OBJS) \
 	      -lgcc
 
-%.o: %.c
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
+	@mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-flash: $(TARGET).elf
+flash: $(BUILD_DIR)/$(TARGET).elf
 	$(OPENOCD) -f $(OPENOCD_INTERFACE) \
 	          -f $(OPENOCD_TARGET) \
 	          -c "adapter speed $(ADAPTER_SPEED)" \
-	          -c "program $(TARGET).elf verify reset exit"
+	          -c "program $(BUILD_DIR)/$(TARGET).elf verify reset exit"
 
 openocd:
 	$(OPENOCD) -f $(OPENOCD_INTERFACE) \
 	          -f $(OPENOCD_TARGET) \
 	          -c "adapter speed $(ADAPTER_SPEED)"
 
-gdb: $(TARGET).elf
-	$(GDB) $(TARGET).elf
+gdb: $(BUILD_DIR)/$(TARGET).elf
+	$(GDB) $(BUILD_DIR)/$(TARGET).elf
 
 clean:
-	rm -f *.o $(TARGET).elf $(TARGET).map $(TARGET).bin
+	rm -rf $(BUILD_DIR)
 
 reset:
 	$(OPENOCD) -f $(OPENOCD_INTERFACE) \

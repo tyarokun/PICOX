@@ -12,7 +12,7 @@ SECTIONS {
 
   .vectors : { /* boot2の直後にベクタテーブルを置く0x10000100~ */
     . = ALIGN(256); /* 256byteでアラインメント */
-    KEEP(vector_table.o(.data))
+    KEEP(*vector_table.o(.data))
   } > FLASH
 
   .text : {
