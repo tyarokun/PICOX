@@ -1,11 +1,11 @@
-#include "app.h"
+#include "exec.h"
 #include "define.h"
 #include "kernel.h"
 #include "sddrv.h"
 #include "consdrv.h"
 #include "lib.h"
 
-int app_main(int argc, char *argv[]){
+int exec_main(int argc, char *argv[]){
     int size;
     char *filename, *load_result_msg;
     uint32_t entry_address;

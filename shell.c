@@ -5,7 +5,7 @@
 #include "serial.h"
 #include "lib.h"
 #include "shell.h"
-#include "app.h"
+#include "exec.h"
 #include "consdrv.h"
 
 /* Cortex-M0+ Application Interrupt and Reset Control Register */
