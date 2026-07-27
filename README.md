@@ -1,37 +1,67 @@
 # PICOX
 
-PICOXは、Raspberry Pi Pico（RP2040 / Arm Cortex-M0+）向けの学習用組込みOSです。
+PICOXは、Raspberry Pi Pico（RP2040 / Arm Cortex-M0+）向けの組込みOSです。
 
 ## ピン配置
 
-### UART0
+### Picoprobeとの接続
 
-| 信号 | GPIO | Picoのピン番号 |
-|---|---:|---:|
-| UART0 TX | GPIO0 | 1 |
-| UART0 RX | GPIO1 | 2 |
-| GND | - | 3 |
+Picoprobeには、PICOXのシリアル出力を確認するためのUART接続と、プログラムの書き込み・デバッグを行うためのSWD接続を行います。
 
-USB-UART変換アダプタとは、次のように接続します。
+#### UART0
 
-```text
-Pico GPIO0（TX） -> USB-UART RX
-Pico GPIO1（RX） -> USB-UART TX
-Pico GND         -> USB-UART GND
+| 信号       |  GPIO | Picoのピン番号 |
+| -------- | ----: | --------: |
+| UART0 TX | GPIO0 |         1 |
+| UART0 RX | GPIO1 |         2 |
+
+PICOXを実行するPicoとPicoprobeを、次のように接続します。
+
+| 実行対象Pico       |  PicoProbe |
+|-|-|
+| GPIO0（UART0 TX） | GPIO5 （UART RX）|
+| GPIO1（UART0 RX） | GPIO4 （UART TX）|
+| GND | GND|
+
+
+UART通信の設定は次のとおりです。
+
+```
+ボーレート  ：115200 bps
+データ長    ：8 bit
+パリティ    ：なし
+ストップ    ：1 bit
+フロー制御  ：なし
 ```
 
-3.3 VのUART信号に対応した変換アダプタを使用してください。
+#### SWD
+
+プログラムの書き込みやGDBによるデバッグには、SWDを使用します。
+
+| 実行対象Pico       |  PicoProbe |
+|-|-|
+| SWCLK | SWCLK（GPIO2）|
+| SWDIO | SWDIO（GPIO3）|
+| GND | GND|
+
+Raspberry Pi PicoのSWD端子は、基板下部にある次の3端子です。
+
+```text
+SWCLK
+GND
+SWDIO
+```
 
 ### SDカード（SPI0）
 
-| 信号 | GPIO | Picoのピン番号 | SDカード側 |
-|---|---:|---:|---|
-| MISO | GPIO16 | 21 | DO |
-| CS | GPIO17 | 22 | CS |
-| SCK | GPIO18 | 24 | CLK |
-| MOSI | GPIO19 | 25 | DI |
-| 3.3 V | - | 36 | VCC |
-| GND | - | 23または38 | GND |
+| 信号    |   GPIO | Picoのピン番号 | SDカード側 |
+| ----- | -----: | --------: | ------ |
+| MISO  | GPIO16 |        21 | DO     |
+| CS    | GPIO17 |        22 | CS     |
+| SCK   | GPIO18 |        24 | CLK    |
+| MOSI  | GPIO19 |        25 | DI     |
+| 3.3 V |      - |        36 | VCC    |
+| GND   | -      | 任意のGNDピン | GND |
 
 接続は次のとおりです。
 
@@ -46,45 +76,96 @@ Pico GND            -> SD GND
 
 3.3 Vの信号に対応したSDカードモジュールを使用してください。
 
-## 必要なもの
+## 動作確認済みの開発環境
 
-- Raspberry Pi Pico
-- Raspberry Pi Pico SDK
-- GNU Arm Embedded Toolchain
-- CMake
-- Make
-- USB-UART変換アダプタ
-- SPI接続のmicroSDカードモジュール
+### PC
 
-## ビルド方法
-
-環境変数 `PICO_SDK_PATH` にRaspberry Pi Pico SDKの場所を設定します。
-
-```sh
-export PICO_SDK_PATH=/path/to/pico-sdk
+```text
+MacBook Pro M1
+macOS Sequoia 15.5
 ```
 
-その後、PICOXのディレクトリでビルドします。
+### マイコン
+
+```text
+Raspberry Pi Pico
+RP2040
+Arm Cortex-M0+
+```
+
+## ソフトウェアの環境構築
+
+### 必要なソフトウェアのインストール
+
+Homebrewを使用して、OpenOCD、GDB、ARM用コンパイラをインストールします。
 
 ```sh
-mkdir -p build
-cd build
-cmake ..
+brew install open-ocd
+brew install arm-none-eabi-gdb
+brew install --cask gcc-arm-embedded
+```
+
+各ソフトウェアの用途は次のとおりです。
+
+* `open-ocd`
+
+  * Picoprobeを経由してPicoへ接続します。
+  * プログラムの書き込みやデバッグに使用します。
+
+* `arm-none-eabi-gdb`
+
+  * ARMマイコン向けのGDBです。
+  * プログラムの停止、ステップ実行、変数やレジスタの確認に使用します。
+
+* `gcc-arm-embedded`
+
+  * ARMマイコン向けのコンパイラやリンカなどをインストールします。
+
+GDBのコマンドへパスを通します。
+
+```sh
+brew link --overwrite arm-none-eabi-gdb
+hash -r
+```
+
+* `brew link --overwrite arm-none-eabi-gdb`
+
+  * HomebrewでインストールしたGDBをターミナルから実行できるようにします。
+
+* `hash -r`
+
+  * シェルが保持しているコマンドパスのキャッシュを更新します。
+
+## PICOXのビルド
+
+PICOXのリポジトリへ移動し、次のコマンドを実行します。
+
+```sh
 make
 ```
 
-ビルドに成功するとUF2ファイルが生成されます。
+ビルドに成功すると、Picoへ書き込むための実行ファイルが生成されます。
 
-Raspberry Pi PicoのBOOTSELボタンを押しながらUSBへ接続し、生成されたUF2ファイルを書き込んでください。
+## Picoprobeを使用した書き込み
+
+Picoprobeと実行対象PicoのSWD端子を接続した状態で、OpenOCDを起動します。
+
+使用するOpenOCDの設定ファイルや書き込みコマンドは、環境に合わせて指定してください。
 
 ## PICOXの起動
 
-USB-UART変換アダプタを接続し、シリアルターミナルを開きます。
+PicoprobeのUART機能を使用して、シリアルターミナルを開きます。
 
-macOSでの例：
+macOSでは、Picoprobeのシリアルデバイスを次のコマンドで確認できます。
 
 ```sh
-screen /dev/tty.usbserial-XXXX 115200
+ls /dev/cu.usbmodem*
+```
+
+表示されたデバイス名を指定して接続します。
+
+```sh
+screen /dev/cu.usbmodemXXXX 115200
 ```
 
 正常に起動すると、次のように表示されます。
@@ -92,6 +173,14 @@ screen /dev/tty.usbserial-XXXX 115200
 ```text
 PICOX shell started
 picox>
+```
+
+`screen`を終了する場合は、次の順番でキーを入力します。
+
+```text
+Ctrl+A
+K
+Y
 ```
 
 ## シェルコマンド
@@ -126,7 +215,7 @@ picox> run LED.ELF
 2. 実行するELFファイルをSDカードのルートディレクトリへコピーします。
 3. SDカードをPicoへ接続したモジュールに挿入します。
 4. PICOXを起動します。
-5. `run` コマンドでELFファイルを指定します。
+5. `run`コマンドでELFファイルを指定します。
 
 例：
 
@@ -140,18 +229,4 @@ picox> run LED.ELF
 
 ```text
 LED.ELF
-APP.ELF
-TEST.ELF
 ```
-
-PICOXはSDカードからELFファイルを読み込み、ロード対象のセグメントをRAMへ配置して、エントリポイントを呼び出します。
-
-## アプリケーション用RAM領域
-
-現在のELFローダーでは、次のRAM領域をアプリケーション用として使用します。
-
-```text
-0x20020000 - 0x2003FFFF
-```
-
-アプリケーションのロード対象セグメントとエントリポイントが、この範囲に収まるようにリンクしてください。
