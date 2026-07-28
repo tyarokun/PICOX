@@ -7,6 +7,7 @@
 
 typedef struct{
     picox_func_t entry;
+    int background;
 } app_param_t;
 
 /*
@@ -15,27 +16,34 @@ typedef struct{
 */
 int exec_app(int argc, char *argv[]){ //ラッパースレッド
     app_param_t *param;
+    picox_func_t entry;
+    int background;
     param = (app_param_t *)argv;
-    param->entry(0, NULL);
-    picox_send(MSGBOX_ID_APPEND, 0, NULL); //アプリケーション実行終了を通知する
+    entry = param->entry;
+    background = param->background;
+    picox_free(param);
+    entry(0, NULL);
+    if(!background){
+        picox_send(MSGBOX_ID_APPEND, 0, NULL); //アプリケーション実行終了を通知する
+    }
     return 0;
 }
 
 int exec_main(int argc, char *argv[]){
     int size;
-    char *filename, *load_result_msg;
+    char *load_result_msg;
     uint32_t entry_address;
     picox_func_t entry;
     int load_result;
     app_param_t *param;
+    exec_request_t *request;
 
     while(1){
         size = 0;
-        filename = NULL;
-        // shellから実行するファイル名を受け取る
-        picox_recv(MSGBOX_ID_APPREQUEST, &size, &filename);
+        // shellからリクエストを受け取る
+        picox_recv(MSGBOX_ID_APPREQUEST, &size, (char **)&request);
         // 実際のSDカード読み出しとELFロードはsddrvスレッドが行う(メッセージ通信で処理を渡す)
-        load_result = sddrv_load_elf(filename, &entry_address);
+        load_result = sddrv_load_elf(request->filename, &entry_address);
         if(load_result < 0){ //ロード失敗
             load_result_msg = sddrv_error(load_result);
             consdrv_write("Load failed: ");
@@ -47,11 +55,15 @@ int exec_main(int argc, char *argv[]){
         }
         param = picox_malloc(sizeof(app_param_t));
         param->entry = (picox_func_t)entry_address;
-        picox_run(exec_app, filename, 8, 0x1000, 0, (char **)param); //ラッパースレッド作成
-        picox_free(filename);
-        picox_free(param);
-        picox_recv(MSGBOX_ID_APPEND, 0, NULL);
-        picox_send(MSGBOX_ID_CMDEND, 0, NULL);
+        param->background = request->background;
+        picox_run(exec_app, request->filename, 8, 0x1000, 0, (char **)param); //ラッパースレッド作成
+        if(request->background){
+            picox_send(MSGBOX_ID_CMDEND, 0, NULL);
+        }else{
+            picox_recv(MSGBOX_ID_APPEND, 0, NULL);
+            picox_send(MSGBOX_ID_CMDEND, 0, NULL);
+        }
+        picox_free(request);
     }
 
     return 0;

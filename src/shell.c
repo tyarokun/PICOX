@@ -13,7 +13,11 @@
 #define SCB_AIRCR_VECTKEY          (0x5FA << 16)
 #define SCB_AIRCR_SYSRESETREQ      (1 << 2)
 
-typedef int (*command_func_t)(char *argument);
+typedef struct{
+    int background;
+} command_option_t;
+
+typedef int (*command_func_t)(char *argument, command_option_t *option);
 
 // コマンドテーブル
 typedef struct {
@@ -21,6 +25,7 @@ typedef struct {
     command_func_t function;    //実行する関数
     char *description;    //説明文(help用)
 } command_entry;
+
 
 //コマンド前の空白を読み飛ばす
 static char *skip_spaces(char *p){
@@ -31,12 +36,12 @@ static char *skip_spaces(char *p){
 }
 
 // コマンドの関数宣言
-static int command_help(char *argument);
-static int command_echo(char *argument);
-static int command_version(char *argument);
-static int command_clear(char *argument);
-static int command_reset(char *argument);
-static int command_run(char *argument);
+static int command_help(char *argument, command_option_t *option);
+static int command_echo(char *argument, command_option_t *option);
+static int command_version(char *argument, command_option_t *option);
+static int command_clear(char *argument, command_option_t *option);
+static int command_reset(char *argument, command_option_t *option);
+static int command_run(char *argument, command_option_t *option);
 
 //コマンドテーブル
 static command_entry commands[] = {
@@ -51,7 +56,7 @@ static command_entry commands[] = {
 #define COMMAND_COUNT ((int)(sizeof(commands) / sizeof(commands[0]))) //コマンドの数
 
 // コマンド処理
-static int command_help(char *argument){
+static int command_help(char *argument, command_option_t *option){
     int i;
     (void)argument;
     consdrv_write("commands:\n");
@@ -65,25 +70,25 @@ static int command_help(char *argument){
     return 0;
 }
 
-static int command_echo(char *argument){
+static int command_echo(char *argument, command_option_t *option){
     consdrv_write(argument);
     consdrv_write("\n");
     return 0;
 }
 
-static int command_version(char *argument){
+static int command_version(char *argument, command_option_t *option){
     (void)argument;
     consdrv_write("PicoX 0.3 (RP2040)\n");
     return 0;
 }
 
-static int command_clear(char *argument){
+static int command_clear(char *argument, command_option_t *option){
     (void)argument;
     consdrv_write("\033[2J\033[H"); //\033[2J→画面を消去, \033[H→カーソルを左上へ移動
     return 0;
 }
 
-static int command_reset(char *argument){
+static int command_reset(char *argument, command_option_t *option){
     INTR_DISABLE();
     __asm__ volatile ("dsb"); //リセット要求より前に実行したメモリアクセスが完了するまで待つ
     SCB_AIRCR = SCB_AIRCR_VECTKEY | SCB_AIRCR_SYSRESETREQ;
@@ -93,17 +98,18 @@ static int command_reset(char *argument){
     }
 }
 
-static int command_run(char *argument){
-    int size;
-    char *filename;
+static int command_run(char *argument, command_option_t *option){
+    exec_request_t *request;
+    int length;
     if(argument == NULL || *argument == '\0'){
         consdrv_write("usage: run FILE.ELF\n");
         return -1;
     }
-    size = strlen(argument) + 1;
-    filename = (char *)picox_malloc(size);
-    memcpy(filename, argument, size);
-    picox_send(MSGBOX_ID_APPREQUEST, size, filename); //appスレッドへ要求
+    length = strlen(argument) + 1;
+    request = (exec_request_t *)picox_malloc(sizeof(exec_request_t));
+    memcpy(request->filename, argument, length);
+    request->background = option->background;
+    picox_send(MSGBOX_ID_APPREQUEST, sizeof(exec_request_t), (char *)request); //appスレッドへ要求
     consdrv_write("run request sent\n");
     //runコマンドの実行終了まで待機
     picox_recv(MSGBOX_ID_CMDEND, NULL, NULL);
@@ -114,24 +120,46 @@ static int command_run(char *argument){
 static int command_execute(char *line){
     char *command;
     char *argument;
+    char *end;
+    command_option_t option;
     int i;
+    option.background = 0;
+
     command = skip_spaces(line);
     if(*command == '\0'){ //Enterだけの時
         return 0;
     }
+
+    //行末に&があるかチェック
+    end = command + strlen(command);
+    while(end > command && end[-1] == ' '){ //行末から空白を削除
+        end--;
+    }
+    if(end > command && end[-1] == '&'){ //&があるかチェック
+        option.background = 1;
+        end--;
+        while(end > command && end[-1] == ' '){
+            end--;
+        }
+    }
+    *end = '\0'; 
+
+    //パラメータの解析
     argument = command;
     while(*argument && *argument != ' '){ //コマンドより後ろの最初の空白まで飛ばす
         argument++;
     }
     if(*argument){
-        *argument++ = '\0'; //空白を'\0'に置き換える (command = "echo", argument = "Hello World" のようになる)
+        *argument++ = '\0'; //空白を'\0'に置き換える
         argument = skip_spaces(argument);
     }
+    // コマンドの処理へ移る
     for(i = 0; i < COMMAND_COUNT; i++){
         if(strcmp(command, commands[i].name) == 0){
-            return commands[i].function(argument);
+            return commands[i].function(argument, &option);
         }
     }
+    //コマンドが見つからなかった
     consdrv_write("unknown command: ");
     consdrv_write(command);
     consdrv_write("\n");
