@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
 
     *(volatile unsigned int *)SIO_GPIO_OE_SET = GPIO25_MASK;
 
-    while (1) {
+    for(int i = 0; i < 20; i++){
         *(volatile unsigned int *)SIO_GPIO_OUT_SET = GPIO25_MASK;
         wait_msec(50u);
 

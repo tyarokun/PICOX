@@ -7,7 +7,7 @@
 #include "lib.h"
 #include "memory.h"
 
-#define THREAD_NUM       6
+#define THREAD_NUM       10
 #define THREAD_NAME_SIZE 15
 #define PRIORITY_NUM 16
 
@@ -165,8 +165,8 @@ static picox_thread_id_t thread_run(picox_func_t func, char *name, int priority,
 }
 
 static int thread_exit(void){
-  serial_puts(current->name);
-  serial_puts(" EXIT.\n");
+  // serial_puts(current->name);
+  // serial_puts(" EXIT.\n");
   memset(current, 0, sizeof(*current));
   return 0;
 }
