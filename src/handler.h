@@ -3,10 +3,13 @@
 
 #include "define.h"
 
-#define SOFTVEC_TYPE_NUM      3
-#define SOFTVEC_TYPE_SOFTERR  0
-#define SOFTVEC_TYPE_SYSCALL  1
-#define SOFTVEC_TYPE_SERINTR  2
+typedef enum{
+    SOFTVEC_TYPE_SOFTERR = 0,
+    SOFTVEC_TYPE_SYSCALL,
+    SOFTVEC_TYPE_SERINTR,
+    SOFTVEC_TYPE_TIMER,
+    SOFTVEC_TYPE_NUM,
+};
 
 // 例外ハンドラ
 void Reset_Handler(void);
@@ -18,5 +21,9 @@ void SysTick_Handler(void);
 void UART0_IRQ_Handler(void);
 
 int start_thread(int argc, char *argv[]);
+
+// Systic control
+void systick_init(void);
+void systick_stop(void);
 
 #endif

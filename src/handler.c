@@ -6,6 +6,39 @@
 #include "lib.h"
 
 
+/*
+* ------------------------
+* Systick setting
+* ------------------------
+*/
+#define SYST_CSR   (*(volatile uint32_t *)0xE000E010u)
+#define SYST_RVR   (*(volatile uint32_t *)0xE000E014u)
+#define SYST_CVR   (*(volatile uint32_t *)0xE000E018u)
+
+#define SYST_CSR_ENABLE    (1u << 0)
+#define SYST_CSR_TICKINT   (1u << 1)
+#define SYST_CSR_CLKSOURCE (1u << 2)
+
+#define CPU_CLOCK_HZ 125000000u // 125 MHz / 1000 = 125000
+#define SYSTICK_HZ   1000u      // 1ミリ秒ごとにSysTick割り込みを発生させる
+
+void systick_init(void){
+  SYST_RVR = CPU_CLOCK_HZ / SYSTICK_HZ - 1u;  // SysTickのRELOAD値は 周期 - 1
+  SYST_CVR = 0;                               // 現在のカウンタ値とCOUNTFLAGをクリア
+  SYST_CSR = SYST_CSR_ENABLE | SYST_CSR_TICKINT | SYST_CSR_CLKSOURCE; // CPUクロックを使用 | SysTick例外を有効化 | カウンタを有効化
+}
+
+void systick_stop(void){
+  SYST_CSR = 0u;
+  SYST_CVR = 0u;
+}
+
+
+/*
+* ------------------------
+* Memory setting
+* ------------------------
+*/
 static void runtime_init(void){
   extern uint32_t _rodata_end, _data_start, _data_end;
   extern uint32_t _bss_start, _bss_end;
@@ -13,6 +46,12 @@ static void runtime_init(void){
   memset(&_bss_start, 0, (long)&_bss_end - (long)&_bss_start);
 }
 
+
+/*
+* ------------------------
+* Reset Handler
+* ------------------------
+*/
 void Reset_Handler(void){
   runtime_init();
   clock_init_125mhz();
@@ -22,16 +61,33 @@ void Reset_Handler(void){
   while(1);
 }
 
+
+/*
+* ------------------------
+* NMI Handler
+* ------------------------
+*/
 void NMI_Handler(void){
   while(1);
 }
 
+/*
+* ------------------------
+* HardFault Handler
+* ------------------------
+*/
 void HardFault_Handler(void){
   INTR_DISABLE();
   serial_puts("HardFault\n");
   while(1);
 }
 
+
+/*
+* ------------------------
+* SCV Handler
+* ------------------------
+*/
 /*
  * svc #0: 通常のシステムコール。PSP上にr4-r11、EXC_RETURN、CONTROLを保存する。
  * svc #1: OS起動時だけ使用。初期スレッドに切り替える。
@@ -84,14 +140,80 @@ __attribute__((naked)) void SVC_Handler(void){
   );
 }
 
+
+/*
+* ------------------------
+* PendSV Handler
+* ------------------------
+*/
 void PendSV_Handler(void){
 
 }
 
-void SysTick_Handler(void){
 
+/*
+* ------------------------
+* Systick Handler
+* ------------------------
+*/
+__attribute__((naked)) void SysTick_Handler(void){
+  __asm__ volatile(
+    ".syntax unified             \n"
+    /*
+     * LRのbit 2を確認する
+     * bit 2 = 1:
+     *   例外発生前はPSPを使用
+     *
+     * bit 2 = 0:
+     *   例外発生前はMSPを使用
+     */
+    "mov  r3, lr                 \n"
+    "movs r2, #4                 \n"
+    "tst  r3, r2                 \n"
+    "beq  1f                     \n"
+    /*
+     * Thread mode + PSPの場合だけ
+     * スレッドコンテキストを保存する
+     */
+    "mrs  r0, psp                \n"
+    "movs r2, #40                \n"
+    "subs r0, r0, r2             \n"
+    /* r4-r7をオフセット16へ保存 */
+    "mov  r1, r0                 \n"
+    "movs r2, #16                \n"
+    "adds r1, r1, r2             \n"
+    "stmia r1!, {r4-r7}          \n"
+    /* r8-r11をオフセット0へ保存 */
+    "mov  r4, r8                 \n"
+    "mov  r5, r9                 \n"
+    "mov  r6, r10                \n"
+    "mov  r7, r11                \n"
+    "mov  r1, r0                 \n"
+    "stmia r1!, {r4-r7}          \n"
+    /* EXC_RETURNとCONTROLを保存 */
+    "str  r3, [r0, #32]          \n"
+    "mrs  r2, control            \n"
+    "str  r2, [r0, #36]          \n"
+    "msr  psp, r0                \n"
+    /* interrupt(SOFTVEC_TYPE_TIMER, 保存後SP) */
+    "mov  r1, r0                 \n"
+    "movs r0, #3                 \n"
+    "b    interrupt              \n"
+    /*
+     * MSPから入った場合はスケジューリングしない
+     * 現在処理中の例外へ戻る
+     */
+    "1:                          \n"
+    "bx   lr                     \n"
+    ".syntax divided             \n"
+  );
 }
 
+/*
+* ------------------------
+* UART0 IRQ Handler
+* ------------------------
+*/
 __attribute__((naked)) void UART0_IRQ_Handler(void){
   __asm__ volatile (
     ".syntax unified             \n"

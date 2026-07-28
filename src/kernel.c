@@ -75,9 +75,14 @@ __attribute__((naked, noreturn)) void dispatch(picox_context *context){
     "ldmia r0!, {r2-r3}          \n"    // r2=EXC_RETURN, r3=CONTROL
     "msr  control, r3            \n"    // control←r3
     "isb                         \n"    // パイプラインを破棄→CPUが再度メモリから命令をフェッチしなおすことを強制
+    "ldr r1, 1f                  \n"    // _stack_top
+    "msr  msp, r1                \n"    // msp を _stack_topへ戻す
     "msr  psp, r0                \n"    // r0はハードウェア例外フレーム
     "bx   r2                     \n"    // 例外復帰
-    ".syntax divided               \n"
+    ".align 2                    \n"    //ここ以降は実行されない
+    "1:                          \n"
+    ".word _stack_top            \n"
+    ".syntax divided             \n"
   );
 }
 
@@ -347,6 +352,11 @@ static void softerr_intr(void){
   thread_exit();
 }
 
+static void timer_intr(void){
+  getcurrent();
+  putcurrent();
+}
+
 static void thread_intr(softvec_type_t type, uint32_t *sp){
   current->context.sp = sp;
   if (handlers[type]) handlers[type]();
@@ -363,6 +373,7 @@ void picox_start(picox_func_t func, char *name, int priority, int stacksize, int
   picoxmem_init();
   thread_setintr(SOFTVEC_TYPE_SYSCALL, syscall_intr);
   thread_setintr(SOFTVEC_TYPE_SOFTERR, softerr_intr);
+  thread_setintr(SOFTVEC_TYPE_TIMER, timer_intr);
   current = (picox_thread *)thread_run(func, name, priority, stacksize, argc, argv);
   if ((picox_thread_id_t)current == (picox_thread_id_t)-1) picox_sysdown();
   register picox_context *context __asm__("r0");

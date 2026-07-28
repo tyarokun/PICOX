@@ -1,4 +1,5 @@
 #include "define.h"
+#include "handler.h"
 #include "shell.h"
 #include "kernel.h"
 #include "exec.h"
@@ -12,6 +13,7 @@ int start_thread(int argc, char *argv[]){
     picox_run(exec_main,    "app",    3, 0x1000, 0, NULL);
 
     picox_chpri(15);
+    systick_init();
     while(1){
         __asm__ volatile ("wfi");
     }
