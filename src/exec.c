@@ -9,11 +9,15 @@ typedef struct{
     picox_func_t entry;
 } app_param_t;
 
-int exec_app(int argc, char *argv[]){
+/*
+*ラッパースレッドによってアプリ終了を通知することができるので
+*アプリ終了まで待機できる
+*/
+int exec_app(int argc, char *argv[]){ //ラッパースレッド
     app_param_t *param;
     param = (app_param_t *)argv;
     param->entry(0, NULL);
-    picox_send(MSGBOX_ID_APPEND, 0, NULL); //アプリケーション実行終了を知らせる
+    picox_send(MSGBOX_ID_APPEND, 0, NULL); //アプリケーション実行終了を通知する
     return 0;
 }
 
