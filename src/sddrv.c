@@ -28,7 +28,7 @@ typedef enum {
 typedef struct {
     sddrv_request_type type;
     const char *filename;
-    uint32_t entry;
+    elf_loaded_image image;
     int result;
 } sddrv_request;
 
@@ -243,10 +243,10 @@ static int sd_read_sector(uint32_t lba, uint8_t *buffer, void *context){
     return 0;
 }
 
-static int sddrv_load_elf_execute(const char *filename, uint32_t *entry){
+static int sddrv_load_elf_execute(const char *filename, elf_loaded_image *image){
     fat32_file file;
     int result;
-    if(filename == NULL || entry == NULL){
+    if(filename == NULL || image == NULL){
         return SDDRV_ERR_REQUEST;
     }
     if(sd_card_init() < 0){
@@ -265,7 +265,7 @@ static int sddrv_load_elf_execute(const char *filename, uint32_t *entry){
     if(result < 0){
         return SDDRV_ERR_SD_READ;
     }
-    result = elf_loader_load(&file, entry);
+    result = elf_loader_load(&file, image);
     switch(result){
         case ELF_LOADER_OK:
             return 0;
@@ -300,17 +300,17 @@ static int sddrv_call(sddrv_request *request){
     return request->result;
 }
 
-int sddrv_load_elf(const char *filename, uint32_t *entry){
+int sddrv_load_elf(const char *filename, elf_loaded_image *image){
     sddrv_request request = {0};
     int result;
-    if(filename == NULL || entry == NULL){
+    if(filename == NULL || image == NULL){
         return SDDRV_ERR_REQUEST;
     }
     request.type = SDDRV_REQUEST_LOAD_ELF;
     request.filename = filename;
     result = sddrv_call(&request);
     if(result == 0){
-        *entry = request.entry;
+        *image = request.image;
     }
     return result;
 }
@@ -332,7 +332,7 @@ int sddrv_main(int argc, char *argv[]){
         request = (sddrv_request *)message;
         switch(request->type){
             case SDDRV_REQUEST_LOAD_ELF:
-                request->result = sddrv_load_elf_execute(request->filename, &request->entry);
+                request->result = sddrv_load_elf_execute(request->filename, &request->image);
                 break;
             default:
                 request->result = SDDRV_ERR_REQUEST;
@@ -346,17 +346,18 @@ int sddrv_main(int argc, char *argv[]){
 
 const char *sddrv_error(int error){
     switch(error){
-        case SDDRV_ERR_SD_INIT:    return "SD init failed";
-        case SDDRV_ERR_SD_READ:    return "SD read failed";
-        case SDDRV_ERR_FAT32:      return "FAT32 mount failed";
-        case SDDRV_ERR_NOT_FOUND:  return "file not found";
-        case SDDRV_ERR_ELF_HEADER: return "invalid ELF header";
-        case SDDRV_ERR_ELF_FORMAT: return "unsupported ELF";
-        case SDDRV_ERR_ELF_RANGE:  return "ELF is outside app RAM";
-        case SDDRV_ERR_ELF_READ:   return "ELF read failed";
-        case SDDRV_ERR_NO_SEGMENT: return "no PT_LOAD segment";
-        case SDDRV_ERR_FILENAME:   return "invalid FAT 8.3 filename";
-        case SDDRV_ERR_REQUEST:    return "invalid SD driver request";
-        default:                   return "unknown error";
+        case SDDRV_ERR_SD_INIT:     return "SD init failed";
+        case SDDRV_ERR_SD_READ:     return "SD read failed";
+        case SDDRV_ERR_FAT32:       return "FAT32 mount failed";
+        case SDDRV_ERR_NOT_FOUND:   return "file not found";
+        case SDDRV_ERR_ELF_HEADER:  return "invalid ELF header";
+        case SDDRV_ERR_ELF_FORMAT:  return "unsupported ELF";
+        case SDDRV_ERR_ELF_RANGE:   return "ELF is outside app RAM";
+        case SDDRV_ERR_ELF_READ:    return "ELF read failed";
+        case SDDRV_ERR_NO_SEGMENT:  return "no PT_LOAD segment";
+        case SDDRV_ERR_FILENAME:    return "invalid FAT 8.3 filename";
+        case SDDRV_ERR_REQUEST:     return "invalid SD driver request";
+        case SDDRV_ERR_NO_MEMORY:   return "no free app RAM";
+        default:                    return "unknown error";
     }
 }

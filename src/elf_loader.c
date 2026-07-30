@@ -41,17 +41,42 @@ typedef struct __attribute__((packed)) {
     uint32_t align;     // アラインメント
 } elf32_program_header;
 
-int elf_loader_load(const fat32_file *file, uint32_t *entry){ // file：FAT32上で開かれたELFファイル, entry：ロード後に実行開始アドレスを書き込む変数
+static int is_power_of_two(uint32_t value){
+    return value != 0u && (value & (value - 1u)) == 0u;
+}
+
+static int load_error(elf_loaded_image *image, int error){
+    if (image != NULL && image->memory.page_count != 0u){
+        app_memory_free(&image->memory);
+    }
+    if (image != NULL) {
+        memset(image, 0, (long)sizeof(*image));
+    }
+    return error;
+}
+
+
+int elf_loader_load(const fat32_file *file, elf_loaded_image *image){ // file：FAT32上で開かれたELFファイル, entry：ロード後に実行開始アドレスを書き込む変数
     elf32_header header;
     elf32_program_header program;
     uint32_t i;
-    uint32_t loaded = 0u;
+    uint32_t image_start = 0xffffffffu;
+    uint32_t image_end = 0u;
+    uint32_t image_size;
+    uint32_t max_alignment = 4u;
+    uint32_t linked_entry;
+    uint32_t destination;
+    uint32_t segment_end;
+    uint32_t program_offset;
+    uint32_t segment_count = 0u;
 
-    if(file == NULL || entry == NULL){
+    if(file == NULL || image == NULL){
         return ELF_LOADER_ERR_HEADER;
     }
 
-    // ファイル先頭のオフセット0から、ELFヘッダのサイズだけ読み込みます。
+    memset(image, 0, (long)sizeof(*image));
+
+    // ファイル先頭のオフセット0から、ELFヘッダのサイズだけ読み込む
     if(fat32_read(file, 0u, &header, sizeof(header)) < 0){
         return ELF_LOADER_ERR_HEADER;
     }
@@ -64,7 +89,7 @@ int elf_loader_load(const fat32_file *file, uint32_t *entry){ // file：FAT32上
         return ELF_LOADER_ERR_HEADER;
     }
 
-    // ELF形式の確認
+    // 対応しているELF形式か確認
     if(header.ident[4] != 1u                    // 32ビットRLF
         || header.ident[5] != 1u                // Cortex-M0+ はリトルエンディアン
         || header.type != ET_EXEC               // 実行可能ファイルか確認 (固定配置されたリンクされた実行ファイル)(共有オブジェクトや再配置可能オブジェクトはロードできない)
@@ -81,52 +106,108 @@ int elf_loader_load(const fat32_file *file, uint32_t *entry){ // file：FAT32上
         return ELF_LOADER_ERR_RANGE;
     }
 
-    // アプリケーション用RAM領域全体をゼロで初期化
-    memset((void *)APP_RAM_START, 0, (long)(APP_RAM_END - APP_RAM_START));
-
-    //ELFに含まれるすべてのプログラムヘッダのブロックを順番に調べる
+    // 1回目の走査 (PT_LOAD全体の先頭・末尾・最大アラインメントを求める)(この時点ではまだRAMへコピーしない)
     for(i = 0u; i < header.phnum; i++){
-        uint32_t program_offset = header.phoff + i * (uint32_t)header.phentsize; // プログラムヘッダ表の先頭 + ヘッダ番号 × ヘッダ1個のサイズ
-
-        // 計算した位置からプログラムヘッダを1個読み込む
-        if(fat32_read(file, program_offset, &program, sizeof(program)) < 0){
+        program_offset = header.phoff + i * (uint32_t)header.phentsize;
+        if (fat32_read(file, program_offset, &program, sizeof(program)) < 0){
             return ELF_LOADER_ERR_READ;
         }
+        if (program.type != PT_LOAD || program.memsz == 0u) {
+            continue;
+        }
+        // 元のELFがPICOXのアプリ用アドレスへ リンクされていることを確認
+        if (program.filesz > program.memsz || program.vaddr < APP_RAM_START || program.vaddr >= APP_RAM_END || program.memsz > APP_RAM_END - program.vaddr) {
+            return ELF_LOADER_ERR_RANGE;
+        }
+        // p_alignは0、1または2の累乗でなければならない
+        if (program.align > 1u && !is_power_of_two(program.align)) {
+            return ELF_LOADER_ERR_FORMAT;
+        }
+        segment_end = program.vaddr + program.memsz;
+        if (program.vaddr < image_start) {
+            image_start = program.vaddr;
+        }
+        if (segment_end > image_end) {
+            image_end = segment_end;
+        }
+        if (program.align > max_alignment) {
+            max_alignment = program.align;
+        }
+        segment_count++;
+    }
 
-        // ロード対象の確認 (PT_LOADでないセグメントはRAMへロードする必要がないため無視 || RAM上で必要なサイズが0なら何も配置する必要がないため無視)
+    if (segment_count == 0u) {
+        return ELF_LOADER_ERR_NO_SEGMENT;
+    }
+    if (image_end <= image_start) {
+        return ELF_LOADER_ERR_RANGE;
+    }
+    image_size = image_end - image_start;
+
+    // Thumbビットを除いた元のentryがPT_LOAD範囲内にあることを確認する
+    linked_entry = header.entry & ~1u;
+    if (linked_entry < image_start
+        || linked_entry >= image_end) {
+        return ELF_LOADER_ERR_RANGE;
+    }
+
+    // 空き領域を確保する
+    if (app_memory_alloc(image_size, max_alignment, &image->memory) < 0){
+        return ELF_LOADER_ERR_NO_MEMORY;
+    }
+
+    // 確保した領域だけを初期化する
+    memset((void *)image->memory.base, 0, (long)image->memory.size);
+
+    /*
+     * 2回目の走査
+     *
+     * 各PT_LOADを、元の相対位置を保ったまま
+     * 確保した領域へコピーする。
+     */
+    for (i = 0u; i < header.phnum; i++){
+        program_offset = header.phoff + i * (uint32_t)header.phentsize;
+        if(fat32_read(file, program_offset, &program, sizeof(program)) < 0){
+            return load_error(image, ELF_LOADER_ERR_READ);
+        }
         if(program.type != PT_LOAD || program.memsz == 0u){
             continue;
         }
 
-        // セグメントの範囲検査 (不正なサイズや、PICOX本体の領域を壊すような配置を防ぐ)
-        if(program.filesz > program.memsz
-            || program.vaddr < APP_RAM_START
-            || program.vaddr >= APP_RAM_END
-            || program.memsz > APP_RAM_END - program.vaddr){
-            return ELF_LOADER_ERR_RANGE;
-        }
+        // 実ロード先 load_base + (ELF内のvaddr - ELFの先頭vaddr)
+        destination = image->memory.base + (program.vaddr - image_start);
 
-        // ELFファイル内のprogram.offsetからprogram.fileszバイト読み込み、RAMのprogram.vaddrへ直接配置
-        if(program.filesz != 0u && fat32_read(file, program.offset, (void *)program.vaddr, program.filesz) < 0){
-            return ELF_LOADER_ERR_READ;
+        if (program.filesz != 0u) {
+            if (fat32_read(file, program.offset, (void *)destination, program.filesz) < 0){
+                return load_error(image, ELF_LOADER_ERR_READ);
+            }
         }
-
-        // .bss相当部分のゼロ初期化
-        if(program.memsz > program.filesz){
-            memset((void *)(program.vaddr + program.filesz), 0, (long)(program.memsz - program.filesz));
+        // .bss相当部分をゼロ初期化する
+        if (program.memsz > program.filesz) {
+            memset((void *)(destination + program.filesz), 0, (long)(program.memsz - program.filesz));
         }
-
-        loaded++; //正常にロードしたPT_LOADセグメントの数を記録
     }
 
-    // 最後まで処理しても1つもロードされなかった場合はエラー
-    if(loaded == 0u){
-        return ELF_LOADER_ERR_NO_SEGMENT;
-    }
+    image->linked_base = image_start;
+    image->load_base = image->memory.base;
+    image->image_size = image_size;
 
-    __asm__ volatile ("dsb" ::: "memory");  // それ以前に行ったメモリ書き込みが完了するまで、後続処理を進めないようする (ELFのコードやデータがRAMへ確実に書き込まれるのを待つ)
-    __asm__ volatile ("isb" ::: "memory");  // CPUの命令実行パイプラインを同期し、新しく書き込まれた命令を正しく参照できるようにする
+    // entryも新しいロード先へ移動する
+    image->entry = image->load_base + (linked_entry - image_start);
 
-    *entry = header.entry;  // エントリアドレスを返す
+    // Thumbビットを付ける
+    image->entry |= 1u;
+
+    __asm__ volatile ("dsb" ::: "memory");
+    __asm__ volatile ("isb" ::: "memory");
+
     return ELF_LOADER_OK;
+}
+
+void elf_loader_unload(elf_loaded_image *image){
+    if (image == NULL) {
+        return;
+    }
+    app_memory_free(&image->memory);
+    memset(image, 0, (long)sizeof(*image));
 }
