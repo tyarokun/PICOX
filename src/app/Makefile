@@ -1,4 +1,8 @@
-TARGET := led.elf
+# ディレクトリ内のすべての .c ファイルを取得 (例: led.c red.c)
+SRCS := $(wildcard *.c)
+
+# .c から対応する .elf のリストを生成 (例: led.elf red.elf)
+TARGETS := $(patsubst %.c,%.elf,$(SRCS))
 
 CC := arm-none-eabi-gcc
 
@@ -24,18 +28,21 @@ LDFLAGS := \
 	-Wl,-e,main \
 	-Wl,-Ttext=0x20020000
 
-all: $(TARGET)
+# すべての .elf ファイルをビルド対象にする
+all: $(TARGETS)
 
-$(TARGET): led.o
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
+# パターンルール: %.elf は対応する %.o から作成
+%.elf: %.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
 
-led.o: led.c
+# パターンルール: %.o は対応する %.c から作成
+%.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-inspect: $(TARGET)
-	arm-none-eabi-readelf -h -l $(TARGET)
+inspect: $(TARGETS)
+	arm-none-eabi-readelf -h -l $(TARGETS)
 
 clean:
-	rm -f led.o $(TARGET)
+	rm -f *.o *.elf
 
 .PHONY: all inspect clean

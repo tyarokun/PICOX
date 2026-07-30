@@ -34,12 +34,12 @@ int main(int argc, char *argv[])
 
     *(volatile unsigned int *)SIO_GPIO_OE_SET = GPIO25_MASK;
 
-    for(int i = 0; i < 20; i++){
+    for(;;){
         *(volatile unsigned int *)SIO_GPIO_OUT_SET = GPIO25_MASK;
-        wait_msec(50u);
+        wait_msec(500u);
 
         *(volatile unsigned int *)SIO_GPIO_OUT_CLR = GPIO25_MASK;
-        wait_msec(50u);
+        wait_msec(500u);
     }
 
     return 0;
