@@ -2,9 +2,7 @@
 #include "lib.h"
 #include "fat32.h"
 #include "elf_loader.h"
-
-#define APP_RAM_START 0x20020000u
-#define APP_RAM_END   0x20040000u
+#include "app_memory.h"
 
 #define ET_EXEC 2u      // 実行可能形式のELF
 #define EM_ARM  40u     // ARM向けのELF
