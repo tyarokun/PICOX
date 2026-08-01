@@ -1,12 +1,14 @@
 #include "app_memory.h"
 #include "lib.h"
 
-static uint8_t page_used[APP_PAGE_COUNT];
+static char page_used[APP_PAGE_COUNT];   // 使用されているページの管理(0:空き, 1:使用中)
 
+// 全ページ空き状態
 void app_memory_init(void){
     memset(page_used, 0, sizeof(page_used));
 }
 
+// アラインメントが2の累乗か確認
 static int is_power_of_two(uint32_t value){
     return value != 0u && (value & (value - 1)) == 0;
 }
@@ -26,27 +28,28 @@ int app_memory_alloc(uint32_t size, uint32_t alignment, app_memory_region *regio
     if(!is_power_of_two(alignment)){
         return -1;
     }
-    required_pages = (size + APP_PAGE_SIZE - 1) / APP_PAGE_SIZE;
+
+    required_pages = (size + APP_PAGE_SIZE - 1) / APP_PAGE_SIZE; //必要ページ数は切り上げ除算で計算
 
     if(required_pages > APP_PAGE_COUNT){
         return -1;
     }
 
-    // First-fit: 先頭から、必要ページ数だけ連続して空いている場所を探す
+    // 先頭から、必要ページ数だけ連続して空いている場所を探す
     for (first = 0; first + required_pages <= APP_PAGE_COUNT; first++){
         base = APP_RAM_START + first * APP_PAGE_SIZE;
-        if((base & (alignment - 1)) != 0){
+        if((base & (alignment - 1)) != 0){ // アラインメントの確認 (候補となる先頭アドレスが、ELFの要求する境界にそろっているか確認)
             continue;
         }
-        for(i = 0u; i < required_pages; i++){
-            if (page_used[first + i]) {
+        for(i = 0; i < required_pages; i++){ // 連続した空きページを確保
+            if(page_used[first + i]){
                 break;
             }
         }
         if(i != required_pages){
             continue;
         }
-        for(i = 0u; i < required_pages; i++){
+        for(i = 0; i < required_pages; i++){ //確保するページを使用中に変更
             page_used[first + i] = 1;
         }
         region->base = base;

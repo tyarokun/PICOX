@@ -27,10 +27,10 @@ typedef struct __attribute__((packed)){
     uint16_t shstrndx;
 } elf32_header;
 
-// プログラムヘッダー
+// プログラムヘッダー (1つのセグメント)
 typedef struct __attribute__((packed)) {
     uint32_t type;      // セグメントの種類
-    uint32_t offset;    // ELFファイル内でのデータ位置
+    uint32_t offset;    // ELFファイル内でのデータ位置(セグメント本体の位置)
     uint32_t vaddr;     // ロード先アドレス
     uint32_t paddr;     // 物理アドレス
     uint32_t filesz;    // ELFファイル内に存在するサイズ
@@ -106,8 +106,8 @@ int elf_loader_load(const fat32_file *file, elf_loaded_image *image){ // file：
 
     // 1回目の走査 (PT_LOAD全体の先頭・末尾・最大アラインメントを求める)(この時点ではまだRAMへコピーしない)
     for(i = 0u; i < header.phnum; i++){
-        program_offset = header.phoff + i * (uint32_t)header.phentsize;
-        if (fat32_read(file, program_offset, &program, sizeof(program)) < 0){
+        program_offset = header.phoff + i * (uint32_t)header.phentsize; // i番目のプログラムヘッダのファイル内オフセットを計算
+        if (fat32_read(file, program_offset, &program, sizeof(program)) < 0){// ELFファイルのプログラムヘッダーを読み込む
             return ELF_LOADER_ERR_READ;
         }
         if (program.type != PT_LOAD || program.memsz == 0u) {
@@ -121,14 +121,14 @@ int elf_loader_load(const fat32_file *file, elf_loaded_image *image){ // file：
         if (program.align > 1u && !is_power_of_two(program.align)) {
             return ELF_LOADER_ERR_FORMAT;
         }
-        segment_end = program.vaddr + program.memsz;
-        if (program.vaddr < image_start) {
-            image_start = program.vaddr;
+        segment_end = program.vaddr + program.memsz;    // 全てのPT_LOADの中で最も大きい末尾アドレス
+        if(program.vaddr < image_start){    // すべてのPT_LOADの開始アドレスを比較し、最も小さいものを選ぶ
+            image_start = program.vaddr;    // 全てのPT_LOADの中で最も小さいvaddr
         }
-        if (segment_end > image_end) {
-            image_end = segment_end;
+        if(segment_end > image_end){    // すべてのPT_LOADの末尾アドレスを比較し、最も大きいものを選ぶ
+            image_end = segment_end;    // 全てのPT_LOADの中で最も大きい末尾アドレス
         }
-        if (program.align > max_alignment) {
+        if(program.align > max_alignment){
             max_alignment = program.align;
         }
         segment_count++;
@@ -144,8 +144,7 @@ int elf_loader_load(const fat32_file *file, elf_loaded_image *image){ // file：
 
     // Thumbビットを除いた元のentryがPT_LOAD範囲内にあることを確認する
     linked_entry = header.entry & ~1u;
-    if (linked_entry < image_start
-        || linked_entry >= image_end) {
+    if (linked_entry < image_start || linked_entry >= image_end) {
         return ELF_LOADER_ERR_RANGE;
     }
 
@@ -157,12 +156,7 @@ int elf_loader_load(const fat32_file *file, elf_loaded_image *image){ // file：
     // 確保した領域だけを初期化する
     memset((void *)image->memory.base, 0, (long)image->memory.size);
 
-    /*
-     * 2回目の走査
-     *
-     * 各PT_LOADを、元の相対位置を保ったまま
-     * 確保した領域へコピーする。
-     */
+    // 2回目の走査 (各PT_LOADを、元の相対位置を保ったまま確保した領域へコピーする)
     for (i = 0u; i < header.phnum; i++){
         program_offset = header.phoff + i * (uint32_t)header.phentsize;
         if(fat32_read(file, program_offset, &program, sizeof(program)) < 0){
@@ -172,16 +166,16 @@ int elf_loader_load(const fat32_file *file, elf_loaded_image *image){ // file：
             continue;
         }
 
-        // 実ロード先 load_base + (ELF内のvaddr - ELFの先頭vaddr)
+        // 実ロード先 :load_base + (ELF内のvaddr - ELFの先頭vaddr)
         destination = image->memory.base + (program.vaddr - image_start);
 
-        if (program.filesz != 0u) {
-            if (fat32_read(file, program.offset, (void *)destination, program.filesz) < 0){
+        if(program.filesz != 0u){
+            if (fat32_read(file, program.offset, (void *)destination, program.filesz) < 0){ //セグメント本体をdestinationへロード
                 return load_error(image, ELF_LOADER_ERR_READ);
             }
         }
         // .bss相当部分をゼロ初期化する
-        if (program.memsz > program.filesz) {
+        if(program.memsz > program.filesz){
             memset((void *)(destination + program.filesz), 0, (long)(program.memsz - program.filesz));
         }
     }
@@ -189,12 +183,8 @@ int elf_loader_load(const fat32_file *file, elf_loaded_image *image){ // file：
     image->linked_base = image_start;
     image->load_base = image->memory.base;
     image->image_size = image_size;
-
-    // entryも新しいロード先へ移動する
-    image->entry = image->load_base + (linked_entry - image_start);
-
-    // Thumbビットを付ける
-    image->entry |= 1u;
+    image->entry = image->load_base + (linked_entry - image_start); // entryも新しいロード先へ移動する
+    image->entry |= 1u; // Thumbビットを付ける
 
     __asm__ volatile ("dsb" ::: "memory");
     __asm__ volatile ("isb" ::: "memory");

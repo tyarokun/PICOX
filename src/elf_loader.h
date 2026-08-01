@@ -17,9 +17,9 @@ typedef enum {
 
 typedef struct {
     uint32_t entry;             // 実際のロード先に補正したエントリアドレス
-    uint32_t linked_base;       // ELFがリンクされた元の先頭アドレス
+    uint32_t linked_base;       // ELFがリンクされた元の先頭アドレス(ELFが元々想定していた先頭アドレス)
     uint32_t load_base;         // 実際にロードした先頭アドレス
-    uint32_t image_size;        // PT_LOADセグメント全体が占める範囲
+    uint32_t image_size;        // PT_LOADセグメント全体が占める範囲(ELF全体がRAM上で必要とする範囲)
     app_memory_region memory;   // app_memoryで確保した領域
 } elf_loaded_image;
 

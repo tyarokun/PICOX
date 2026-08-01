@@ -10,10 +10,10 @@
 #define APP_PAGE_COUNT ((APP_RAM_END - APP_RAM_START) / APP_PAGE_SIZE)
 
 typedef struct {
-    uint32_t base;
-    uint32_t size;
-    uint16_t first_page;
-    uint16_t page_count;
+    uint32_t base;          // 確保した実アドレス
+    uint32_t size;          // 実際に確保したサイズ
+    uint16_t first_page;    // 最初のページ番号
+    uint16_t page_count;    // 確保したページ数
 } app_memory_region;
 
 void app_memory_init(void);
