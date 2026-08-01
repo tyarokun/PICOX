@@ -14,7 +14,7 @@ typedef struct __attribute__((packed)){
     uint8_t ident[16];  // ELF識別情報
     uint16_t type;      // ELFの種類
     uint16_t machine;   // 対象CPU
-    uint32_t version;   // 実行開始アドレス
+    uint32_t version;
     uint32_t entry;     // 実行開始アドレス
     uint32_t phoff;     // プログラムヘッダ表のファイル内位置 (プログラムヘッダ表の先頭)
     uint32_t shoff;
