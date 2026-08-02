@@ -15,7 +15,7 @@
 
 #define R_ARM_NONE            0u
 #define R_ARM_PC24            1u
-#define R_ARM_ABS32           2u
+#define R_ARM_ABS32           2u    // ABS32は32ビットの絶対アドレス
 #define R_ARM_REL32           3u
 #define R_ARM_THM_CALL       10u
 #define R_ARM_THM_PC8        11u
@@ -32,7 +32,7 @@
 #define R_ARM_THM_JUMP11    102u
 #define R_ARM_THM_JUMP8     103u
 
-#define ELF32_R_TYPE(info) ((uint8_t)((info) & 0xffu))
+#define ELF32_R_TYPE(info) ((uint8_t)((info) & 0xffu)) //下位8bitのみ使用 (上位24ビット：シンボル番号, 下位8ビット：再配置型)
 
 // ELFヘッダー
 typedef struct __attribute__((packed)){
@@ -41,8 +41,8 @@ typedef struct __attribute__((packed)){
     uint16_t machine;   // 対象CPU
     uint32_t version;
     uint32_t entry;     // 実行開始アドレス
-    uint32_t phoff;     // プログラムヘッダ表のファイル内位置 (プログラムヘッダ表の先頭)
-    uint32_t shoff;
+    uint32_t phoff;     // プログラムヘッダ表のファイル内位置
+    uint32_t shoff;     // セクションヘッダ表のファイル内位置
     uint32_t flags;
     uint16_t ehsize;    // ELFヘッダのサイズ
     uint16_t phentsize; // プログラムヘッダ1個のサイズ
@@ -67,27 +67,28 @@ typedef struct __attribute__((packed)) {
 // セクションヘッダー (1つのセクション)
 typedef struct __attribute__((packed)) {
     uint32_t name;
-    uint32_t type;
-    uint32_t flags;
+    uint32_t type;      // セクションの種類
+    uint32_t flags;     // 属性 (SHF_ALLOCなど)
     uint32_t addr;
     uint32_t offset;
     uint32_t size;
     uint32_t link;
-    uint32_t info;
+    uint32_t info;      // 再配置対象となるセクション番号
     uint32_t addralign;
-    uint32_t entsize;
+    uint32_t entsize;   // 再配置エントリ一個のサイズ
 } elf32_section_header;
 
-// ARM ELFのREL形式再配置エントリ
+// REL形式再配置エントリ1個 (ELF仕様で定められた Elf32_Rel という構造体)(再配置1個について, どこを書き換えるか•どの種類の再配置を行うか)
 typedef struct __attribute__((packed)) {
-    uint32_t offset;
-    uint32_t info;
+    uint32_t offset;    // 再配置によって置き換える場所
+    uint32_t info;      // 使用するシンボル番号と再配置方
 } elf32_rel;
 
 static int is_power_of_two(uint32_t value){
     return value != 0u && (value & (value - 1u)) == 0u;
 }
 
+// ELFファイルの範囲外を読み込まないための検査
 static int file_range_valid(const fat32_file *file, uint32_t offset, uint32_t size){
     if(file == NULL || offset > file->size){
         return 0;
@@ -95,26 +96,26 @@ static int file_range_valid(const fat32_file *file, uint32_t offset, uint32_t si
     return size <= file->size - offset;
 }
 
+// 指定された番号のセクションヘッダを読み込む
 static int read_section_header(const fat32_file *file, const elf32_header *header, uint32_t index, elf32_section_header *section){
     uint32_t offset;
     if(file == NULL || header == NULL || section == NULL || index >= header->shnum){
         return -1;
     }
-    offset = header->shoff + index * (uint32_t)header->shentsize;
+    offset = header->shoff + index * (uint32_t)header->shentsize; // index番目のセクションの位置を計算
     if(!file_range_valid(file, offset, (uint32_t)sizeof(*section))){
         return -1;
     }
-    return fat32_read(file, offset, section, (uint32_t)sizeof(*section));
+    return fat32_read(file, offset, section, (uint32_t)sizeof(*section)); //index番目のセクションから読み込む
 }
 
+// ロード済みRAMから、32ビット値をリトルエンディアンとして読む
 static uint32_t read_u32_le(uint32_t address){
-    const uint8_t *p = (const uint8_t *)address;
-    return (uint32_t)p[0]
-        | ((uint32_t)p[1] << 8)
-        | ((uint32_t)p[2] << 16)
-        | ((uint32_t)p[3] << 24);
+    const uint8_t *p = (const uint8_t *)address; //1バイト (Cortex-M0+ではアラインメントが合っていない32ビットアクセスが問題になる可能性があるため1バイトずつ)
+    return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
 }
 
+// 32ビット値をリトルエンディアン形式でRAMへ書き戻す
 static void write_u32_le(uint32_t address, uint32_t value){
     uint8_t *p = (uint8_t *)address;
     p[0] = (uint8_t)value;
@@ -146,30 +147,34 @@ static int apply_relocations(const fat32_file *file, const elf32_header *header,
     if(file == NULL || header == NULL || image == NULL){
         return ELF_LOADER_ERR_FORMAT;
     }
-    load_delta = image->load_base - image->linked_base;
-    if(load_delta == 0u || header->shnum == 0u){
+    load_delta = image->load_base - image->linked_base; // 元のロード位置と再配置先の差を計算
+    if(load_delta == 0u || header->shnum == 0u){ // 再配置が必要ない時はreturn
         return ELF_LOADER_OK;
     }
     if(header->shoff == 0u || header->shentsize != sizeof(elf32_section_header) || header->shnum > MAX_SHNUM){
         return ELF_LOADER_ERR_FORMAT;
     }
-    section_table_size = (uint32_t)header->shnum * (uint32_t)header->shentsize;
+    section_table_size = (uint32_t)header->shnum * (uint32_t)header->shentsize; // セクションヘッダーテーブルのサイズを計算
     if(!file_range_valid(file, header->shoff, section_table_size)){
         return ELF_LOADER_ERR_FORMAT;
     }
 
-    linked_end = image->linked_base + image->image_size;
+    linked_end = image->linked_base + image->image_size; // リンク時イメージの末尾
 
+    // 全セクションを順番に調べる
     for(i = 0u; i < header->shnum; i++){
+        // i番目のセクション読み取り
         if(read_section_header(file, header, i, &relocation_section) < 0){
             return ELF_LOADER_ERR_READ;
         }
+        // SHT_RELか、サイズが0ではないか
         if(relocation_section.type != SHT_REL || relocation_section.size == 0u){
             continue;
         }
         if(relocation_section.info >= header->shnum){
             return ELF_LOADER_ERR_FORMAT;
         }
+        // 該当するセクション番号(info)のセクションをtarget_sectionへ格納
         if(read_section_header(file, header, relocation_section.info, &target_section) < 0){
             return ELF_LOADER_ERR_READ;
         }
@@ -180,32 +185,35 @@ static int apply_relocations(const fat32_file *file, const elf32_header *header,
         if(relocation_section.entsize != sizeof(elf32_rel) || (relocation_section.size % sizeof(elf32_rel)) != 0u || !file_range_valid(file, relocation_section.offset, relocation_section.size)){
             return ELF_LOADER_ERR_FORMAT;
         }
-        relocation_count = relocation_section.size / (uint32_t)sizeof(elf32_rel);
+        
+        // 再配置エントリを順番に読む
+        relocation_count = relocation_section.size / (uint32_t)sizeof(elf32_rel); // 再配置エントリの個数
         for(j = 0u; j < relocation_count; j++){
-            relocation_offset = relocation_section.offset + j * (uint32_t)sizeof(elf32_rel);
-            if(fat32_read(file, relocation_offset, &relocation, sizeof(relocation)) < 0){
+            relocation_offset = relocation_section.offset + j * (uint32_t)sizeof(elf32_rel); // 該当する Relocation section のファイル内位置を計算
+            if(fat32_read(file, relocation_offset, &relocation, sizeof(relocation)) < 0){ // 該当する Relocation section を読み込む
                 return ELF_LOADER_ERR_READ;
             }
-            type = ELF32_R_TYPE(relocation.info);
+            type = ELF32_R_TYPE(relocation.info); // 再配置型を取得
             if(type == R_ARM_NONE){
                 continue;
             }
             if(relocation.offset < image->linked_base || relocation.offset >= linked_end){
                 return ELF_LOADER_ERR_RANGE;
             }
-            target_address = image->load_base + (relocation.offset - image->linked_base);
+            target_address = image->load_base + (relocation.offset - image->linked_base); // ロード後の修正先アドレスを計算 (relocation.offset-linked_baseは相対距離なのでそれをload_baseへ足せば機械語上での変数の位置がわかる)
 
             switch(type){
                 case R_ARM_ABS32:
                 case R_ARM_TARGET1:
+                    // 修正場所から4バイト読めるか確認
                     if(linked_end - relocation.offset < sizeof(uint32_t)){
                         return ELF_LOADER_ERR_RANGE;
                     }
+                    // 現在保存されている値(32bit)を読む
                     value = read_u32_le(target_address);
-
                     // 内部を指す値だけを移動し、MMIOなどイメージ外の固定アドレスは変更しない
                     if(value >= image->linked_base && value <= linked_end){
-                        write_u32_le(target_address, value + load_delta);
+                        write_u32_le(target_address, value + load_delta); // 値がリンク時のアプリイメージ内部を指している場合だけ差分を加える
                     }
                     break;
                 // イメージ全体を同じ差分だけ移動する場合、S-Pは変化しない
