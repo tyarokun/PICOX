@@ -23,10 +23,12 @@ static void wait_msec(unsigned int msec)
 }
 
 
+
 int main(int argc, char *argv[])
 {
     (void)argc;
     (void)argv;
+
 
     /* GPIO5のファンクションをSIO (5) に設定 */
     *(volatile unsigned int *)GPIO5_CTRL = 5u;

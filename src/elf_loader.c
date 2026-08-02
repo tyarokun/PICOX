@@ -299,7 +299,7 @@ int elf_loader_load(const fat32_file *file, elf_loaded_image *image){ // file：
     }
 
     // 実行開始アドレスがThumb関数として正しく設定されているか (Cortex-Mでは、関数ポインタの最下位ビットを1にして、Thumb命令であることを示す)
-    if((header.entry & 1u) == 0u || header.entry < APP_RAM_START || header.entry >= APP_RAM_END){
+    if((header.entry & 1u) == 0u /* || header.entry < APP_RAM_START || header.entry >= APP_RAM_END */){
         return ELF_LOADER_ERR_RANGE;
     }
 
@@ -313,7 +313,7 @@ int elf_loader_load(const fat32_file *file, elf_loaded_image *image){ // file：
             continue;
         }
         // 元のELFがPICOXのアプリ用アドレスへ リンクされていることを確認
-        if (program.filesz > program.memsz || program.vaddr < APP_RAM_START || program.vaddr >= APP_RAM_END || program.memsz > APP_RAM_END - program.vaddr) {
+        if (program.filesz > program.memsz /*|| program.vaddr < APP_RAM_START || program.vaddr >= APP_RAM_END || program.memsz > APP_RAM_END - program.vaddr*/) {
             return ELF_LOADER_ERR_RANGE;
         }
         // p_alignは0、1または2の累乗でなければならない

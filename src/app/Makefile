@@ -26,7 +26,7 @@ LDFLAGS := \
 	-Wl,--build-id=none \
 	-Wl,-N \
 	-Wl,-e,main \
-	-Wl,-Ttext=0x20020000
+	-Wl,--emit-relocs
 
 # すべての .elf ファイルをビルド対象にする
 all: $(TARGETS)

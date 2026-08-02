@@ -22,24 +22,28 @@ static void wait_msec(unsigned int msec)
     }
 }
 
+volatile int interval = 500u;
+volatile int count;
+volatile char a[100];
 
 int main(int argc, char *argv[])
 {
-    (void)argc;
-    (void)argv;
-
-
     *(volatile unsigned int *)GPIO25_CTRL = 5u;
-
-
     *(volatile unsigned int *)SIO_GPIO_OE_SET = GPIO25_MASK;
+    count = 0;
 
     for(;;){
+        interval++;
+        a[count++] = count;
         *(volatile unsigned int *)SIO_GPIO_OUT_SET = GPIO25_MASK;
-        wait_msec(500u);
+        wait_msec(interval);
 
         *(volatile unsigned int *)SIO_GPIO_OUT_CLR = GPIO25_MASK;
-        wait_msec(500u);
+        wait_msec(interval);
+        if(count > 100){
+            interval -= 100;
+            count = 5;
+        }
     }
 
     return 0;
