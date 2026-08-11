@@ -17,6 +17,8 @@ typedef enum{
   SYSCALL_TYPE_SEND,
   SYSCALL_TYPE_RECV,
   SYSCALL_TYPE_SETINTR,
+  SYSCALL_TYPE_KILL,
+  SYSCALL_TYPE_PS,
 } picox_syscall_type_t;
 
 
@@ -76,6 +78,14 @@ typedef struct{
       picox_handler_t handler;
       int ret;
     }setintr;
+    struct{
+      picox_thread_id_t id;
+      int ret;
+    }kill;
+    struct{
+      picox_thread_info_t *info;
+      int ret;
+    }ps;
   }un;
 } picox_syscall_param_t;
 

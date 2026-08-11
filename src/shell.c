@@ -42,6 +42,8 @@ static int command_version(char *argument, command_option_t *option);
 static int command_clear(char *argument, command_option_t *option);
 static int command_reset(char *argument, command_option_t *option);
 static int command_run(char *argument, command_option_t *option);
+static int command_kill(char *argument, command_option_t *option);
+static int command_ps(char *argument, command_option_t *option);
 
 //コマンドテーブル
 static command_entry commands[] = {
@@ -51,6 +53,8 @@ static command_entry commands[] = {
     {"clear",   command_clear,      "clear terminal"},
     {"reset",   command_reset,      "reset the system"},
     {"run",     command_run,        "load and run the program"},
+    {"kill",     command_kill,      "kill the app"},
+    {"ps",     command_ps,      "show the process status"},
 };
 
 #define COMMAND_COUNT ((int)(sizeof(commands) / sizeof(commands[0]))) //コマンドの数
@@ -113,6 +117,35 @@ static int command_run(char *argument, command_option_t *option){
     consdrv_write("run request sent\n");
     //runコマンドの実行終了まで待機
     picox_recv(MSGBOX_ID_CMDEND, NULL, NULL);
+    return 0;
+}
+
+static int command_kill(char *argument, command_option_t *option){ //未完成
+    picox_thread_id_t id;
+    if(argument == NULL || argument[0] < '0' || argument[0] > '9' || argument[1] != '\0'){
+        consdrv_write("usage: kill ID\n");
+        return -1;
+    }
+    id = (picox_thread_id_t)(argument[0] - '0');
+    picox_kill(id);
+    return 0;
+}
+
+static int command_ps(char *argument, command_option_t *option){
+    picox_thread_info_t info[THREAD_NUM];
+    int count;
+    int i;
+    count = picox_ps(info);
+    consdrv_write("ID NAME PRI\n");
+    for(i = 0; i < count; i++){
+        // id, name, priorityを表示
+        serial_put_int(info[i].id);
+        consdrv_write(" ");
+        serial_puts(info[i].name);
+        consdrv_write(" ");
+        //serial_put_int(info[i].priority);
+        consdrv_write("\n");
+    }
     return 0;
 }
 

@@ -24,4 +24,14 @@ typedef enum{
     MSGBOX_ID_NUM,
 } picox_msgbox_id_t;
 
+#define THREAD_NUM       10
+#define THREAD_NAME_SIZE 15
+#define PRIORITY_NUM 16
+
+typedef struct {
+    picox_thread_id_t id;
+    char name[THREAD_NAME_SIZE];
+    int priority;
+} picox_thread_info_t;
+
 #endif

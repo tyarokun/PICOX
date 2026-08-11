@@ -7,16 +7,21 @@
 #include "lib.h"
 #include "memory.h"
 
-#define THREAD_NUM       10
-#define THREAD_NAME_SIZE 15
-#define PRIORITY_NUM 16
-
 typedef struct _picox_context{
   uint32_t *sp;
 }picox_context;
 
+typedef enum{
+    THREAD_STATE_UNUSED = 0,
+    THREAD_STATE_READY,
+    THREAD_STATE_RUNNING,
+    THREAD_STATE_BLOCKED_RECV,
+    THREAD_STATE_BLOCKED_SLEEP,
+}picox_thread_state;
+
 typedef struct _picox_thread{
   struct _picox_thread *next;
+  int id;
   char name[THREAD_NAME_SIZE + 1];
   int priority;
   char *stack;
@@ -106,6 +111,33 @@ static int putcurrent(void){
   return 0;
 }
 
+static int readyque_remove(picox_thread *target){
+  picox_thread *thp = NULL;
+  picox_thread *prev = NULL;
+  int priority;
+  priority = target->priority;
+  thp = readyque[priority].head;
+  while(thp != NULL){
+    if(thp == target){
+      // readyqueからはずす処理
+      if(prev == NULL){
+        readyque[priority].head = thp->next; // NULLのときは先頭なのでreadyqueのheadを書き換える必要がある
+      }else{
+        prev->next = thp->next;
+      }
+      if(readyque[priority].tail == thp){ // targetのスレッドがreadyqueの末尾だった時はtailを一個前のスレッドに戻す
+        readyque[priority].tail = prev;
+      }
+      thp->next = NULL;
+      thp->flags &= ~PICOX_THREAD_FLAG_READY;
+      return 0;
+    }
+    prev = thp;
+    thp = thp->next;
+  }
+  return -1;
+}
+
 static void thread_end(void){
   picox_exit();
 }
@@ -117,7 +149,7 @@ static void thread_init(picox_thread *thp){
 
 static picox_thread_id_t thread_run(picox_func_t func, char *name, int priority, int stacksize, int argc, char *argv[]){ //初期スレッド作成
   int i;
-  picox_thread *thp;
+  picox_thread *thp = NULL;
   uint32_t *sp;
 
   if (!func || stacksize < 128) return (picox_thread_id_t)-1;
@@ -133,6 +165,7 @@ static picox_thread_id_t thread_run(picox_func_t func, char *name, int priority,
   if (!thp) return (picox_thread_id_t)-1;
   memset(thp, 0, sizeof(*thp));
   thp->next = NULL;
+  thp->id = (picox_thread_id_t)i;
   strcpy(thp->name, name);
   thp->priority = priority;
   thp->init.func = func;
@@ -166,7 +199,7 @@ static picox_thread_id_t thread_run(picox_func_t func, char *name, int priority,
   putcurrent();
   current = thp;
   putcurrent();
-  return (picox_thread_id_t)thp;
+  return thp->id;
 }
 
 static int thread_exit(void){
@@ -187,14 +220,14 @@ int thread_sleep(void){
 
 int thread_wakeup(picox_thread_id_t id){
   putcurrent();
-  current = (picox_thread *)id;
+  current = &threads[id];
   putcurrent();
   return 0;
 }
 
 picox_thread_id_t thread_getid(void){
   putcurrent();
-  return (picox_thread_id_t)current;
+  return current->id;
 }
 
 int thread_chpri(int priority){
@@ -279,6 +312,32 @@ static int thread_setintr(softvec_type_t type, picox_handler_t handler){
   return 0;
 }
 
+static int thread_kill(picox_thread_id_t id){
+  picox_thread *target = NULL;
+  target = &threads[id];
+  readyque_remove(target);
+  memset(target, 0, sizeof(*target));
+  putcurrent();
+  return 0;
+}
+
+static int thread_ps(picox_thread_info_t *info){
+  picox_thread *thp;
+  int i;
+  int count = 0;
+  for(i = 0; i < THREAD_NUM; i++){
+    if(threads[i].init.func == NULL){
+      continue;
+    }
+    info[i].id = threads[i].id;
+    memcpy(info[i].name, threads[i].name, sizeof(threads[i].name));
+    info[i].priority = threads[i].priority;
+    count++;
+  }
+  putcurrent();
+  return count;
+}
+
 static void call_functions(picox_syscall_type_t type, picox_syscall_param_t *p){
   switch (type){
     case SYSCALL_TYPE_RUN:
@@ -316,6 +375,12 @@ static void call_functions(picox_syscall_type_t type, picox_syscall_param_t *p){
       break;
     case SYSCALL_TYPE_SETINTR:
       p->un.setintr.ret = thread_setintr(p->un.setintr.type, p->un.setintr.handler);
+      break;
+    case SYSCALL_TYPE_KILL:
+      p->un.kill.ret = thread_kill(p->un.kill.id);
+      break;
+    case SYSCALL_TYPE_PS:
+      p->un.ps.ret = thread_ps(p->un.ps.info);
       break;
     default:
       break;
@@ -374,7 +439,7 @@ void picox_start(picox_func_t func, char *name, int priority, int stacksize, int
   thread_setintr(SOFTVEC_TYPE_SYSCALL, syscall_intr);
   thread_setintr(SOFTVEC_TYPE_SOFTERR, softerr_intr);
   thread_setintr(SOFTVEC_TYPE_TIMER, timer_intr);
-  current = (picox_thread *)thread_run(func, name, priority, stacksize, argc, argv);
+  (picox_thread *)thread_run(func, name, priority, stacksize, argc, argv);
   if ((picox_thread_id_t)current == (picox_thread_id_t)-1) picox_sysdown();
   register picox_context *context __asm__("r0");
   context = &current->context;

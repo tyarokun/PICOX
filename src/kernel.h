@@ -18,6 +18,8 @@ int picox_free(void *p);
 int picox_send(picox_msgbox_id_t id, int size, char *p);
 picox_thread_id_t picox_recv(picox_msgbox_id_t id, int *sizep, char **pp);
 int picox_setintr(softvec_type_t type, picox_handler_t handler);
+int picox_kill(picox_thread_id_t id);
+int picox_ps(picox_thread_info_t *info);
 
 // サービスコール
 int picoxs_wakeup(picox_thread_id_t id);

@@ -4,7 +4,11 @@
 #include "interrupt.h"
 
 
-// システムコール
+/*
+  ------------------------------------
+  ---------- システム•コール ----------
+  ------------------------------------
+*/
 picox_thread_id_t picox_run(picox_func_t func, char *name, int priority, int stacksize, int argc, char *argv[]){
   picox_syscall_param_t param;
   param.un.run.func = func;
@@ -94,7 +98,25 @@ int picox_setintr(softvec_type_t type, picox_handler_t handler){
   return param.un.setintr.ret;
 }
 
-// サービスコール
+int picox_kill(picox_thread_id_t id){
+  picox_syscall_param_t param;
+  param.un.kill.id = id;
+  picox_syscall(SYSCALL_TYPE_KILL, &param);
+  return param.un.kill.ret;
+}
+
+int picox_ps(picox_thread_info_t *info){
+  picox_syscall_param_t param;
+  param.un.ps.info = info;
+  picox_syscall(SYSCALL_TYPE_PS, &param);
+  return param.un.ps.ret;
+}
+
+/*
+  ------------------------------------
+  ---------- サービス•コール ----------
+  ------------------------------------
+*/
 int picoxs_wakeup(picox_thread_id_t id){
   picox_syscall_param_t param;
   param.un.wakeup.id = id;
