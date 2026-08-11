@@ -139,11 +139,11 @@ static int command_ps(char *argument, command_option_t *option){
     consdrv_write("ID NAME PRI\n");
     for(i = 0; i < count; i++){
         // id, name, priorityを表示
-        serial_put_int(info[i].id);
+        consdrv_write_int(info[i].id);
         consdrv_write(" ");
-        serial_puts(info[i].name);
+        consdrv_write(info[i].name);
         consdrv_write(" ");
-        //serial_put_int(info[i].priority);
+        consdrv_write_int(info[i].priority);
         consdrv_write("\n");
     }
     return 0;

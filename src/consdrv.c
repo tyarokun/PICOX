@@ -44,7 +44,7 @@ static int send_push_raw(console_device *cons, char value){
 static int send_required_size(char *data, int length){
     int i;
     int required = 0;
-    for (i = 0; i < length; i++) {
+    for (i = 0; i < length; i++){
         if(data[i] == '\n'){ //改行の時は2バイト必要
             required += 2;
         }else{
@@ -182,6 +182,26 @@ int consdrv_write(char *text){
     message = (char *)picox_malloc(length);
     memcpy(message, text, length);
     picox_send(MSGBOX_ID_CONSTX, length, message);
+}
+
+void consdrv_write_int(int value){
+    char buf[12];
+    int i = 0;
+    int j;
+    if(value == 0){
+        consdrv_write("0");
+        return;
+    }
+    while(value > 0){
+        buf[i++] = '0' + (value % 10);
+        value /= 10;
+    }
+    for(j = i - 1; j >= 0; j--){
+        char c[2];
+        c[0] = buf[j];
+        c[1] = '\0';
+        consdrv_write(c);
+    }
 }
 
 // コンソールドライバのスレッド
