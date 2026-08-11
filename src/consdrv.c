@@ -134,7 +134,7 @@ static void process_received_character(console_device *cons, char c){
     if(c == 0x03){ //Ctrl-Cの処理
         cons->recv_length = 0;
         send_text_from_interrupt(cons, "^C\n", 3);
-        send_input_line(cons);
+        picoxs_send(MSGBOX_ID_APPEVENT, 0, NULL);
         return;
     }
     if(c == '\b' || c == 0x7f){ // Backspace と Delete

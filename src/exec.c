@@ -24,7 +24,7 @@ int exec_app(int argc, char *argv[]){ //ラッパースレッド
     entry(0, NULL);
     elf_loader_unload(&param->image);
     if(!background){
-        picox_send(MSGBOX_ID_APPEND, 0, NULL); //アプリケーション実行終了を通知する
+        picox_send(MSGBOX_ID_APPEVENT, 0, NULL); //アプリケーション実行終了を通知する
     }
     picox_free(param);
     return 0;
@@ -38,6 +38,7 @@ int exec_main(int argc, char *argv[]){
     exec_request_t *request;
     elf_loaded_image image;
     picox_thread_id_t id;
+    char *message;
 
     while(1){
         size = 0;
@@ -58,11 +59,12 @@ int exec_main(int argc, char *argv[]){
         param = picox_malloc(sizeof(app_param_t));
         param->image = image;
         param->background = request->background;
-        picox_run(exec_app, request->filename, 8, 0x1000, 0, (char **)param); //ラッパースレッド作成
+        id = picox_run(exec_app, request->filename, 8, 0x1000, 0, (char **)param); //ラッパースレッド作成
         if(request->background){
             picox_send(MSGBOX_ID_CMDEND, 0, NULL);
         }else{
-            picox_recv(MSGBOX_ID_APPEND, 0, NULL);
+            picox_recv(MSGBOX_ID_APPEVENT, &size, &message); // アプリ終了やCtrl-Cによってメッセージ受け取り
+            picox_kill(id);
             picox_send(MSGBOX_ID_CMDEND, 0, NULL);
         }
         picox_free(request);

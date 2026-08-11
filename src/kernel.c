@@ -315,6 +315,9 @@ static int thread_setintr(softvec_type_t type, picox_handler_t handler){
 static int thread_kill(picox_thread_id_t id){
   picox_thread *target = NULL;
   target = &threads[id];
+  if(target->init.func == NULL){
+    return -1;
+  }
   readyque_remove(target);
   memset(target, 0, sizeof(*target));
   putcurrent();
