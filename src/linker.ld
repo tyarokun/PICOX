@@ -65,11 +65,11 @@ SECTIONS {
     _appstack_end = .;
   }
 
-  .app : {
+  .app_load : {
     . = ALIGN(4);
-    _app_start = .;
+    _app_load_start = .;
     . += 128K;
-    _app_end = .;
+    _app_load_end = .;
   } > RAM
 
   _stack_top = ORIGIN(RAM) + LENGTH(RAM);

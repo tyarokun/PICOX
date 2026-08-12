@@ -26,7 +26,7 @@ void mpu_init(void){
 
     MPU_RNR = 0;
 
-    MPU_RBAR = _app_start;
+    MPU_RBAR = _app_load_start;
     
     // MPUを有効化
     MPU_CTRL = MPU_CTRL_PRIVDEFENA;

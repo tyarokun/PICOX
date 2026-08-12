@@ -120,7 +120,7 @@ picox_thread_id_t picox_run_app(picox_func_t func, char *name, int priority, int
   param.un.run.stacksize = stacksize;
   param.un.run.argc = argc;
   param.un.run.argv = argv;
-  picox_syscall(SYSCALL_TYPE_RUN, &param);
+  picox_syscall(SYSCALL_TYPE_APP, &param);
   return param.un.run.ret;
 }
 

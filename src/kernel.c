@@ -230,8 +230,8 @@ static picox_thread_id_t thread_run_app(picox_func_t func, char *name, int prior
   thp->init.func = func;
   thp->init.argc = argc;
   thp->init.argv = argv;
-  memset(thread_stack, 0, stacksize);
-  thread_stack += stacksize;
+  memset(app_thread_stack, 0, stacksize);
+  app_thread_stack += stacksize;
   thp->stack = app_thread_stack;
   sp = (uint32_t *)thp->stack;
   /* Cortex-Mのハードウェア例外フレーム（高アドレス側から作る）。 */
@@ -244,7 +244,7 @@ static picox_thread_id_t thread_run_app(picox_func_t func, char *name, int prior
   *(--sp) = 0;                       // r1
   *(--sp) = (uint32_t)thp;           // r0
 
-  *(--sp) = 3;                       // CONTROL: 非特権+PSP
+  *(--sp) = 2;                       // CONTROL: 非特権+PSP
   *(--sp) = 0xFFFFFFFDu;             // EXC_RETURN: ThreadMode + PSP
   *(--sp) = 0;          // r7
   *(--sp) = 0;          // r6 

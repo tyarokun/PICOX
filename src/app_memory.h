@@ -5,7 +5,7 @@
 
 //#define APP_RAM_START 0x20020000
 //#define APP_RAM_END   0x20040000
-extern uint32_t _app_start, _app_end;
+extern uint32_t _app_load_start, _app_load_end;
 
 #define APP_PAGE_SIZE  256
 // #define APP_PAGE_COUNT ((_app_end - _app_start) / APP_PAGE_SIZE)
