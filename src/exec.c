@@ -59,7 +59,7 @@ int exec_main(int argc, char *argv[]){
         param = picox_malloc(sizeof(app_param_t));
         param->image = image;
         param->background = request->background;
-        id = picox_run(exec_app, request->filename, 8, 0x1000, 0, (char **)param); //ラッパースレッド作成
+        id = picox_run_app(exec_app, request->filename, 8, 0x1000, 0, (char **)param); //ラッパースレッド作成
         if(request->background){
             picox_send(MSGBOX_ID_CMDEND, 0, NULL);
         }else{

@@ -53,9 +53,23 @@ SECTIONS {
 
   .userstack : {
     . = ALIGN(8);
-    userstack = .;
+    _userstack = .;
     . += 24K;
-    userstack_end = .;
+    _userstack_end = .;
+  } > RAM
+
+  .appstack : {
+    . = ALIGN(4);
+    _appstack = .;
+    . += 24K;
+    _appstack_end = .;
+  }
+
+  .app : {
+    . = ALIGN(4);
+    _app_start = .;
+    . += 128K;
+    _app_end = .;
   } > RAM
 
   _stack_top = ORIGIN(RAM) + LENGTH(RAM);

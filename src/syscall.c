@@ -112,6 +112,18 @@ int picox_ps(picox_thread_info_t *info){
   return param.un.ps.ret;
 }
 
+picox_thread_id_t picox_run_app(picox_func_t func, char *name, int priority, int stacksize, int argc, char *argv[]){
+  picox_syscall_param_t param;
+  param.un.run.func = func;
+  param.un.run.name = name;
+  param.un.run.priority = priority;
+  param.un.run.stacksize = stacksize;
+  param.un.run.argc = argc;
+  param.un.run.argv = argv;
+  picox_syscall(SYSCALL_TYPE_RUN, &param);
+  return param.un.run.ret;
+}
+
 /*
   ------------------------------------
   ---------- サービス•コール ----------

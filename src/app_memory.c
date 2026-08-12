@@ -37,7 +37,7 @@ int app_memory_alloc(uint32_t size, uint32_t alignment, app_memory_region *regio
 
     // 先頭から、必要ページ数だけ連続して空いている場所を探す
     for (first = 0; first + required_pages <= APP_PAGE_COUNT; first++){
-        base = APP_RAM_START + first * APP_PAGE_SIZE;
+        base = (uint32_t)&_app_start + first * APP_PAGE_SIZE;
         if((base & (alignment - 1)) != 0){ // アラインメントの確認 (候補となる先頭アドレスが、ELFの要求する境界にそろっているか確認)
             continue;
         }

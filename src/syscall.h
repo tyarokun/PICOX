@@ -19,6 +19,7 @@ typedef enum{
   SYSCALL_TYPE_SETINTR,
   SYSCALL_TYPE_KILL,
   SYSCALL_TYPE_PS,
+  SYSCALL_TYPE_APP,
 } picox_syscall_type_t;
 
 
@@ -86,6 +87,15 @@ typedef struct{
       picox_thread_info_t *info;
       int ret;
     }ps;
+    struct{
+      picox_func_t func;
+      char *name;
+      int priority;
+      int stacksize;
+      int argc;
+      char **argv;
+      picox_thread_id_t ret;
+    }run_app;
   }un;
 } picox_syscall_param_t;
 

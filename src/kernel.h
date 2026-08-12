@@ -20,6 +20,7 @@ picox_thread_id_t picox_recv(picox_msgbox_id_t id, int *sizep, char **pp);
 int picox_setintr(softvec_type_t type, picox_handler_t handler);
 int picox_kill(picox_thread_id_t id);
 int picox_ps(picox_thread_info_t *info);
+picox_thread_id_t picox_run_app(picox_func_t func, char *name, int priority, int stacksize, int argc, char *argv[]);
 
 // サービスコール
 int picoxs_wakeup(picox_thread_id_t id);

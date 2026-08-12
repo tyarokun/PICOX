@@ -5,6 +5,7 @@
 #include "exec.h"
 #include "consdrv.h"
 #include "sddrv.h"
+#include "serial.h"
 
 int start_thread(int argc, char *argv[]){
     app_memory_init();

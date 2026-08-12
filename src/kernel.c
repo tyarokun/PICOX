@@ -6,6 +6,7 @@
 #include "serial.h"
 #include "lib.h"
 #include "memory.h"
+#include "mpu.h"
 
 typedef struct _picox_context{
   uint32_t *sp;
@@ -64,8 +65,11 @@ static picox_thread threads[THREAD_NUM];  //スレッドの実態
 static picox_handler_t handlers[SOFTVEC_TYPE_NUM]; 
 static picox_msgbox msgboxs[MSGBOX_ID_NUM]; //メッセージボックスの実態
 
-extern char userstack, userstack_end;
-static char *thread_stack = &userstack;
+extern char _userstack, _userstack_end;
+static char *thread_stack = &_userstack;
+
+extern char _appstack, _appstack_end;
+static char *app_thread_stack = &_appstack;
 
 __attribute__((naked, noreturn)) void dispatch(picox_context *context){
   __asm__ volatile (
@@ -154,7 +158,7 @@ static picox_thread_id_t thread_run(picox_func_t func, char *name, int priority,
 
   if (!func || stacksize < 128) return (picox_thread_id_t)-1;
   stacksize = (stacksize + 7) & ~7; //アラインメント調整
-  if (thread_stack + stacksize > &userstack_end)
+  if (thread_stack + stacksize > &_userstack_end)
     return (picox_thread_id_t)-1;
   for (i = 0; i < THREAD_NUM; i++) {
     if (!threads[i].init.func) {
@@ -185,7 +189,62 @@ static picox_thread_id_t thread_run(picox_func_t func, char *name, int priority,
   *(--sp) = 0;                       // r1
   *(--sp) = (uint32_t)thp;           // r0
 
-  *(--sp) = 2;                       // CONTROL: Thread modeでPSP
+  *(--sp) = 2;                       // CONTROL: 特権+PSP
+  *(--sp) = 0xFFFFFFFDu;             // EXC_RETURN: ThreadMode + PSP
+  *(--sp) = 0;          // r7
+  *(--sp) = 0;          // r6 
+  *(--sp) = 0;          // r5
+  *(--sp) = 0;          // r4 
+  *(--sp) = 0;          // r11
+  *(--sp) = 0;          // r10
+  *(--sp) = 0;          // r9 
+  *(--sp) = 0;          // r8 
+  thp->context.sp = sp;
+  putcurrent();
+  current = thp;
+  putcurrent();
+  return thp->id;
+}
+
+static picox_thread_id_t thread_run_app(picox_func_t func, char *name, int priority, int stacksize, int argc, char *argv[]){ //初期スレッド作成
+  int i;
+  picox_thread *thp = NULL;
+  uint32_t *sp;
+
+  if (!func || stacksize < 128) return (picox_thread_id_t)-1;
+  stacksize = (stacksize + 7) & ~7; //アラインメント調整
+  if (app_thread_stack + stacksize > &_appstack_end)
+    return (picox_thread_id_t)-1;
+  for (i = 0; i < THREAD_NUM; i++) {
+    if (!threads[i].init.func) {
+      thp = &threads[i];
+      break;
+    }
+  }
+  if (!thp) return (picox_thread_id_t)-1;
+  memset(thp, 0, sizeof(*thp));
+  thp->next = NULL;
+  thp->id = (picox_thread_id_t)i;
+  strcpy(thp->name, name);
+  thp->priority = priority;
+  thp->init.func = func;
+  thp->init.argc = argc;
+  thp->init.argv = argv;
+  memset(thread_stack, 0, stacksize);
+  thread_stack += stacksize;
+  thp->stack = app_thread_stack;
+  sp = (uint32_t *)thp->stack;
+  /* Cortex-Mのハードウェア例外フレーム（高アドレス側から作る）。 */
+  *(--sp) = 0x01000000u;             // xPSR: Thumb bit
+  *(--sp) = (uint32_t)thread_init;   // PC
+  *(--sp) = (uint32_t)thread_end;    // LR
+  *(--sp) = 0;                       // r12
+  *(--sp) = 0;                       // r3
+  *(--sp) = 0;                       // r2
+  *(--sp) = 0;                       // r1
+  *(--sp) = (uint32_t)thp;           // r0
+
+  *(--sp) = 3;                       // CONTROL: 非特権+PSP
   *(--sp) = 0xFFFFFFFDu;             // EXC_RETURN: ThreadMode + PSP
   *(--sp) = 0;          // r7
   *(--sp) = 0;          // r6 
@@ -385,6 +444,9 @@ static void call_functions(picox_syscall_type_t type, picox_syscall_param_t *p){
     case SYSCALL_TYPE_PS:
       p->un.ps.ret = thread_ps(p->un.ps.info);
       break;
+    case SYSCALL_TYPE_APP:
+      p->un.run_app.ret = thread_run_app(p->un.run.func, p->un.run.name, p->un.run.priority, p->un.run.stacksize, p->un.run.argc, p->un.run.argv);
+      break;
     default:
       break;
   }
@@ -439,6 +501,7 @@ void picox_start(picox_func_t func, char *name, int priority, int stacksize, int
   memset(handlers, 0, sizeof(handlers));
   memset(msgboxs, 0, sizeof(msgboxs));
   picoxmem_init();
+  mpu_init();
   thread_setintr(SOFTVEC_TYPE_SYSCALL, syscall_intr);
   thread_setintr(SOFTVEC_TYPE_SOFTERR, softerr_intr);
   thread_setintr(SOFTVEC_TYPE_TIMER, timer_intr);

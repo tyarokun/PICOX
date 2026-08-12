@@ -18,7 +18,7 @@ CFLAGS := -mcpu=cortex-m0plus -mthumb -std=c11 -Wall -Wextra \
 LDFLAGS := -T $(SRC_DIR)/linker.ld -nostartfiles -nostdlib \
            -Wl,-Map=$(BUILD_DIR)/$(TARGET).map
 
-OBJS := boot2.o handler.o vector_table.o serial.o main.o clock.o interrupt.o kernel.o syscall.o lib.o memory.o shell.o consdrv.o exec.o sddrv.o spi.o elf_loader.o fat32.o app_memory.o
+OBJS := boot2.o handler.o vector_table.o serial.o main.o clock.o interrupt.o kernel.o syscall.o lib.o memory.o shell.o consdrv.o exec.o sddrv.o spi.o elf_loader.o fat32.o app_memory.o mpu.o
 
 OBJS := $(addprefix $(BUILD_DIR)/,$(OBJS))
 

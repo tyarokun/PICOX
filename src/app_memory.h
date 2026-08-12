@@ -3,11 +3,13 @@
 
 #include "define.h"
 
-#define APP_RAM_START 0x20020000
-#define APP_RAM_END   0x20040000
+//#define APP_RAM_START 0x20020000
+//#define APP_RAM_END   0x20040000
+extern uint32_t _app_start, _app_end;
 
 #define APP_PAGE_SIZE  256
-#define APP_PAGE_COUNT ((APP_RAM_END - APP_RAM_START) / APP_PAGE_SIZE)
+// #define APP_PAGE_COUNT ((_app_end - _app_start) / APP_PAGE_SIZE)
+#define APP_PAGE_COUNT 512
 
 typedef struct {
     uint32_t base;          // 確保した実アドレス
