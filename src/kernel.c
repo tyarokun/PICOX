@@ -73,7 +73,7 @@ static char *app_thread_stack = &_appstack;
 
 __attribute__((naked, noreturn)) void dispatch(picox_context *context){
   __asm__ volatile (
-    ".syntax unified               \n"
+    ".syntax unified             \n"
     "ldr  r0, [r0]               \n"    // r0←context
     "ldmia r0!, {r4-r7}          \n"    // 先頭16byte読み出す
     "mov  r8, r4                 \n"    
@@ -146,12 +146,19 @@ static void thread_end(void){
   picox_exit();
 }
 
+// システムタスク用
 static void thread_init(picox_thread *thp){
   thp->init.func(thp->init.argc, thp->init.argv);
   thread_end();
 }
 
-static picox_thread_id_t thread_run(picox_func_t func, char *name, int priority, int stacksize, int argc, char *argv[]){ //初期スレッド作成
+// アプリ用
+static void app_thread_init(picox_func_t func, int argc, char **argv){
+  func(argc, argv);
+  thread_end();
+}
+
+static picox_thread_id_t thread_run(picox_func_t func, char *name, int priority, int stacksize, int argc, char *argv[]){
   int i;
   picox_thread *thp = NULL;
   uint32_t *sp;
@@ -236,15 +243,15 @@ static picox_thread_id_t thread_run_app(picox_func_t func, char *name, int prior
   sp = (uint32_t *)thp->stack;
   /* Cortex-Mのハードウェア例外フレーム（高アドレス側から作る）。 */
   *(--sp) = 0x01000000u;             // xPSR: Thumb bit
-  *(--sp) = (uint32_t)thread_init;   // PC
+  *(--sp) = (uint32_t)app_thread_init;   // PC
   *(--sp) = (uint32_t)thread_end;    // LR
   *(--sp) = 0;                       // r12
   *(--sp) = 0;                       // r3
-  *(--sp) = 0;                       // r2
-  *(--sp) = 0;                       // r1
-  *(--sp) = (uint32_t)thp;           // r0
+  *(--sp) = (uint32_t)argv;          // r2
+  *(--sp) = (uint32_t)argc;          // r1
+  *(--sp) = (uint32_t)func;          // r0
 
-  *(--sp) = 2;                       // CONTROL: 非特権+PSP
+  *(--sp) = 3;                       // CONTROL: 非特権+PSP
   *(--sp) = 0xFFFFFFFDu;             // EXC_RETURN: ThreadMode + PSP
   *(--sp) = 0;          // r7
   *(--sp) = 0;          // r6 
@@ -471,7 +478,17 @@ static void schedule(void){
   current = readyque[i].head;
 }
 
+/*
 static void syscall_intr(void){
+  syscall_proc(current->syscall.type, current->syscall.param);
+}
+*/
+
+static void syscall_intr(void){
+  uint32_t *sp;
+  sp = current->context.sp;
+  current->syscall.type = (picox_syscall_type_t)sp[10];
+  current->syscall.param = (picox_syscall_param_t *)sp[11];
   syscall_proc(current->syscall.type, current->syscall.param);
 }
 
@@ -518,10 +535,20 @@ void picox_sysdown(void){
   while(1);
 }
 
+/*
 void picox_syscall(picox_syscall_type_t type, picox_syscall_param_t *param){
   current->syscall.type = type;
   current->syscall.param = param;
   __asm__ volatile ("svc #0");
+}
+*/
+
+void picox_syscall(picox_syscall_type_t type, picox_syscall_param_t *param){
+  register uint32_t r0 __asm__("r0");
+  register uint32_t r1 __asm__("r1");
+  r0 = (uint32_t)type;
+  r1 = (uint32_t)param;
+  __asm__ volatile ("svc #0" : "+r"(r0), "+r"(r1));
 }
 
 void picox_srvcall(picox_syscall_type_t type, picox_syscall_param_t *param){

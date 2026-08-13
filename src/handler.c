@@ -76,10 +76,93 @@ void NMI_Handler(void){
 * HardFault Handler
 * ------------------------
 */
+__attribute__((noreturn))
+void hardfault_handler_c(uint32_t *sp, uint32_t exc_return)
+{
+    uint32_t control;
+
+    __asm__ volatile (
+        "mrs %0, control"
+        : "=r"(control)
+    );
+
+    INTR_DISABLE();
+
+    serial_puts("\n===== HardFault =====\n");
+
+    serial_puts("EXC_RETURN = ");
+    serial_put_hex(exc_return);
+    serial_puts("\n");
+
+    serial_puts("CONTROL    = ");
+    serial_put_hex(control);
+    serial_puts("\n");
+
+    serial_puts("r0         = ");
+    serial_put_hex(sp[0]);
+    serial_puts("\n");
+
+    serial_puts("r1         = ");
+    serial_put_hex(sp[1]);
+    serial_puts("\n");
+
+    serial_puts("r2         = ");
+    serial_put_hex(sp[2]);
+    serial_puts("\n");
+
+    serial_puts("r3         = ");
+    serial_put_hex(sp[3]);
+    serial_puts("\n");
+
+    serial_puts("r12        = ");
+    serial_put_hex(sp[4]);
+    serial_puts("\n");
+
+    serial_puts("LR         = ");
+    serial_put_hex(sp[5]);
+    serial_puts("\n");
+
+    serial_puts("PC         = ");
+    serial_put_hex(sp[6]);
+    serial_puts("\n");
+
+    serial_puts("xPSR       = ");
+    serial_put_hex(sp[7]);
+    serial_puts("\n");
+
+    while (1);
+}
+
 void HardFault_Handler(void){
-  INTR_DISABLE();
-  serial_puts("HardFault\n");
-  while(1);
+  __asm__ volatile (
+        ".syntax unified       \n"
+        /*
+         * LR(EXC_RETURN) bit2
+         *
+         * 0 → MSPからFault
+         * 1 → PSPからFault
+         */
+        "mov  r2, lr           \n"
+        "movs r1, #4           \n"
+        "tst  r2, r1           \n"
+        "beq  1f               \n"
+        /* PSP */
+        "mrs  r0, psp          \n"
+        "b    2f               \n"
+        /* MSP */
+        "1:                    \n"
+        "mrs  r0, msp          \n"
+        "2:                    \n"
+        /*
+         * hardfault_handler_c(
+         *     r0 = exception frame,
+         *     r1 = EXC_RETURN
+         * )
+         */
+        "mov  r1, r2           \n"
+        "b    hardfault_handler_c \n"
+        ".syntax divided       \n"
+    );
 }
 
 

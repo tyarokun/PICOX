@@ -59,14 +59,14 @@ SECTIONS {
   } > RAM
 
   .appstack : {
-    . = ALIGN(4);
+    . = ALIGN(32K);
     _appstack = .;
-    . += 24K;
+    . += 32K;
     _appstack_end = .;
   }
 
   .app_load : {
-    . = ALIGN(4);
+    . = ALIGN(128K);
     _app_load_start = .;
     . += 128K;
     _app_load_end = .;
