@@ -97,7 +97,7 @@ void mpu_init(void){
     mpu_set_region(0, app.base, MPU_RASR_AP_FULL | MPU_RASR_NORMAL | app.size_field | MPU_RASR_ENABLE);
     mpu_set_region(1, appstack.base, /*MPU_RASR_XN |*/ MPU_RASR_AP_FULL | MPU_RASR_NORMAL | appstack.size_field | MPU_RASR_ENABLE);
     mpu_set_region(2, 0x10000000u, MPU_RASR_AP_RO | MPU_RASR_NORMAL | (20u << 1) | MPU_RASR_ENABLE);
-    //mpu_set_region(3, 0x40014000u, MPU_RASR_XN | MPU_RASR_AP_FULL | MPU_RASR_DEVICE | MPU_RASR_SIZE_4KB | MPU_RASR_ENABLE); // IO_BANK0_BASE
+    mpu_set_region(3, 0x40014000u, MPU_RASR_XN | MPU_RASR_AP_FULL | MPU_RASR_DEVICE | MPU_RASR_SIZE_4KB | MPU_RASR_ENABLE); // IO_BANK0_BASE
     mpu_set_region(4, 0x40054000u, MPU_RASR_XN | MPU_RASR_AP_FULL | MPU_RASR_DEVICE | MPU_RASR_SIZE_4KB | MPU_RASR_ENABLE); // TIMER_BASE
     mpu_set_region(5, 0xD0000000u, MPU_RASR_XN | MPU_RASR_AP_FULL | MPU_RASR_DEVICE | MPU_RASR_SIZE_4KB | MPU_RASR_ENABLE); // SIO
     serial_puts("APP base = ");
